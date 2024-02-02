@@ -1,5 +1,6 @@
 package io.github.wouink.dokipa;
 
+import dev.architectury.event.EventResult;
 import io.github.wouink.dokipa.server.DokipaDataManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -7,12 +8,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DoorBlock;
@@ -21,7 +19,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.*;
-import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
@@ -53,8 +50,8 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
             Dokipa.logWithLevel(level, "Door Block (summon)", "Adding door " + doorUUID + " at " + pos);
             Dokipa.logWithLevel(level, "Door Block (summon)", "Facing = " + facing);
             BlockState base = Dokipa.Dokipa_Door.get().defaultBlockState();
-            level.setBlock(pos, base.setValue(HALF, DoubleBlockHalf.LOWER).setValue(FACING, facing), Block.UPDATE_ALL);
-            level.setBlock(pos.above(), base.setValue(HALF, DoubleBlockHalf.UPPER).setValue(FACING, facing), Block.UPDATE_ALL);
+            level.setBlock(pos, base.setValue(HALF, DoubleBlockHalf.LOWER).setValue(FACING, facing).setValue(OPEN, false), Block.UPDATE_ALL);
+            level.setBlock(pos.above(), base.setValue(HALF, DoubleBlockHalf.UPPER).setValue(FACING, facing).setValue(OPEN, false), Block.UPDATE_ALL);
             DokipaDataManager.getInstance(level.getServer()).setDoorPos(doorUUID, pos);
 
             // set door uuid in BlockEntity
@@ -86,13 +83,16 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
         return true;
     }
 
-    // this gets called twice... the door therefore never opens
-    @Override
-    public InteractionResult use(BlockState blockState, Level level, BlockPos blockPos, Player player, InteractionHand interactionHand, BlockHitResult blockHitResult) {
+    public static EventResult interact(Player player, InteractionHand hand, BlockPos pos, Direction face) {
+        Level level = player.level();
+        BlockState state = level.getBlockState(pos);
+
+        if(!state.is(Dokipa.Dokipa_Door.get())) return EventResult.pass();
+
         boolean interact = false;
         if(!level.isClientSide()) {
             Dokipa.logWithLevel(level, "Door Block", "Right click on Dokipa's door");
-            BlockPos blockEntityPos = blockState.getValue(HALF) == DoubleBlockHalf.LOWER ? blockPos : blockPos.above();
+            BlockPos blockEntityPos = state.getValue(HALF) == DoubleBlockHalf.LOWER ? pos : pos.below();
             if(level.getBlockEntity(blockEntityPos) instanceof DokipaDoorBlockEntity dokipaDoor) {
                 if(!dokipaDoor.hasOwner()) {
                     Dokipa.logWithLevel(level, "Door Block", "The door does not have an owner");
@@ -109,26 +109,23 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
         }
         if(interact) {
             Dokipa.logWithLevel(level, "Door Block", "Opening/closing door");
-            toggleOpen(player, level, blockState, blockPos);
-            return InteractionResult.sidedSuccess(level.isClientSide());
-        }
-        else return InteractionResult.FAIL;
-    }
 
-    public void toggleOpen(@Nullable Entity entity, Level level, BlockState state, BlockPos blockPos) {
-        BlockState newState = state.cycle(OPEN);
-        level.setBlock(blockPos, newState, Block.UPDATE_ALL);
-        Dokipa.logWithLevel(level, "Door Block (toggleOpen)", "newState.OPEN = " + newState.getValue(OPEN).booleanValue());
-        level.playSound(null, blockPos, newState.getValue(OPEN).booleanValue() ? SoundEvents.WOODEN_DOOR_OPEN : SoundEvents.WOODEN_DOOR_CLOSE, SoundSource.BLOCKS, 1.0f, level.getRandom().nextFloat() * 0.1f + 0.9f);
-    }
+            // 1st half
+            BlockState newState1 = state.cycle(OPEN);
+            level.setBlockAndUpdate(pos, newState1);
+            Dokipa.logWithLevel(level, "Door Block (toggleOpen)", "newState.OPEN = " + newState1.getValue(OPEN).booleanValue());
 
-    // updates the other door half when the first half is changed
-    @Override
-    public BlockState updateShape(BlockState blockState, Direction direction, BlockState source, LevelAccessor levelAccessor, BlockPos blockPos, BlockPos sourcePos) {
-        if((sourcePos == blockPos.above() || sourcePos == blockPos.below()) && source.is(this)) {
-            return blockState.setValue(OPEN, source.getValue(OPEN));
+            // 2nd half
+            // todo use updateShape instead. here there is a 1 tick delay between the first half and the second one
+            BlockPos secondHalfPos = newState1.getValue(HALF) == DoubleBlockHalf.LOWER ? pos.above() : pos.below();
+            BlockState newState2 = level.getBlockState(secondHalfPos).setValue(OPEN, newState1.getValue(OPEN));
+            level.setBlockAndUpdate(secondHalfPos, newState2);
+
+            // sound
+            level.playSound(null, pos, newState1.getValue(OPEN).booleanValue() ? SoundEvents.WOODEN_DOOR_OPEN : SoundEvents.WOODEN_DOOR_CLOSE, SoundSource.BLOCKS, 1.0f, level.getRandom().nextFloat() * 0.1f + 0.9f);
+            return EventResult.interruptTrue();
         }
-        return blockState;
+        return EventResult.interruptFalse();
     }
 
     @Nullable

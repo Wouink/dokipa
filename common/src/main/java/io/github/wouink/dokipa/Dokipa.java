@@ -1,5 +1,6 @@
 package io.github.wouink.dokipa;
 
+import dev.architectury.event.events.common.InteractionEvent;
 import dev.architectury.networking.simple.MessageType;
 import dev.architectury.networking.simple.SimpleNetworkManager;
 import dev.architectury.registry.registries.DeferredRegister;
@@ -32,6 +33,7 @@ public class Dokipa {
     public static void init() {
         BLOCKS.register();
         BLOCK_ENTITIES.register();
+        InteractionEvent.RIGHT_CLICK_BLOCK.register(DokipaDoorBlock::interact);
     }
 
     public static void logWithLevel(Level level, String source, String message) {
