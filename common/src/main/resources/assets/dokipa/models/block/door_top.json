@@ -1,0 +1,45 @@
+{
+  "credit": "Made with Blockbench",
+  "ambientocclusion": false,
+  "textures": {
+    "1": "dokipa:block/door_side"
+  },
+  "elements": [
+    {
+      "from": [0, 16, -3],
+      "to": [3, 19, 0],
+      "faces": {
+        "north": {"uv": [0, 0, 3, 3], "texture": "#1"},
+        "east": {"uv": [0, 0, 3, 3], "texture": "#1"},
+        "south": {"uv": [0, 0, 3, 3], "texture": "#1"},
+        "west": {"uv": [0, 0, 3, 3], "texture": "#1"},
+        "up": {"uv": [0, 0, 3, 3], "texture": "#1"},
+        "down": {"uv": [0, 0, 3, 3], "texture": "#1"}
+      }
+    },
+    {
+      "from": [0, 16, 16],
+      "to": [3, 19, 19],
+      "faces": {
+        "north": {"uv": [0, 0, 3, 3], "texture": "#1"},
+        "east": {"uv": [0, 0, 3, 3], "texture": "#1"},
+        "south": {"uv": [0, 0, 3, 3], "texture": "#1"},
+        "west": {"uv": [0, 0, 3, 3], "texture": "#1"},
+        "up": {"uv": [0, 0, 3, 3], "texture": "#1"},
+        "down": {"uv": [0, 0, 3, 3], "texture": "#1"}
+      }
+    },
+    {
+      "from": [0, 16, 0],
+      "to": [3, 19, 16],
+      "faces": {
+        "north": {"uv": [0, 0, 3, 3], "texture": "#1"},
+        "east": {"uv": [0, 0, 3, 16], "rotation": 90, "texture": "#1"},
+        "south": {"uv": [0, 0, 3, 3], "texture": "#1"},
+        "west": {"uv": [0, 0, 3, 16], "rotation": 90, "texture": "#1"},
+        "up": {"uv": [0, 0, 3, 16], "texture": "#1"},
+        "down": {"uv": [0, 0, 3, 16], "texture": "#1"}
+      }
+    }
+  ]
+}
