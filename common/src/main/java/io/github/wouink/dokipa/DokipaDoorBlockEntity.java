@@ -52,7 +52,7 @@ public class DokipaDoorBlockEntity extends BlockEntity {
             DokipaDataManager.getInstance(getLevel().getServer()).setDoorOwner(this.doorUUID, entity);
             return true;
         } else {
-            Dokipa.logWithLevel(getLevel(), "Door Block Entity", "This entity is already a dokipa");
+            Dokipa.logWithLevel(getLevel(), "Door Block Entity", "Entity " + entity.getUUID() + " is already a dokipa");
             return false;
         }
     }

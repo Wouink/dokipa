@@ -36,7 +36,8 @@ public class DokipaClient {
                 }
 
                 if(lookingAt == null) {
-                    // todo the player is not looking at a block -> unsummon the door
+                    // the player is not looking at any block -> remove the door
+                    new C2S_SummonDoorMessage(player.getUUID(), C2S_SummonDoorMessage.Unsummon_Pos, Direction.NORTH).sendToServer();
                 } else {
                     // the player is looking at a block -> summon the door
                     Direction facing = player.getDirection().getOpposite();

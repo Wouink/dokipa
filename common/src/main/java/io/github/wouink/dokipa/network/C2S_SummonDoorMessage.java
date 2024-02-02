@@ -15,6 +15,7 @@ import net.minecraft.world.level.Level;
 import java.util.UUID;
 
 public class C2S_SummonDoorMessage extends BaseC2SMessage {
+    public static final BlockPos Unsummon_Pos = new BlockPos(0, -127, 0);
     private UUID entityUUID;
     private BlockPos lookingAt;
     private Direction facing;
@@ -54,7 +55,7 @@ public class C2S_SummonDoorMessage extends BaseC2SMessage {
                 Level level = server.overworld().getLevel();
                 BlockPos currentDoorPos = dataManager.getDoorPos(doorUUID);
                 if(currentDoorPos != null) DokipaDoorBlock.unsummon(level, currentDoorPos);
-                DokipaDoorBlock.summon(level, lookingAt.above(), doorUUID, facing);
+                if(!lookingAt.equals(Unsummon_Pos)) DokipaDoorBlock.summon(level, lookingAt.above(), doorUUID, facing);
             }
         });
     }
