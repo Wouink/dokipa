@@ -4,7 +4,9 @@ import dev.architectury.event.EventResult;
 import io.github.wouink.dokipa.server.DokipaDataManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
@@ -59,7 +61,16 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
                 Dokipa.logWithLevel(level, "Door Block (summon)", "There is indeed a door at pos " + pos);
                 dokipaDoor.setDoorUUID(doorUUID);
             }
-            // todo particles and sound
+
+            // particles and sound
+            if(level instanceof ServerLevel serverLevel) {
+                double x = pos.getX() + 0.5;
+                double y = pos.getY() + 1;
+                double z = pos.getZ() + 0.5;
+                serverLevel.sendParticles(ParticleTypes.DRAGON_BREATH, x, y, z, 10, 0, 0, 0, 1);
+                serverLevel.playSound(null, pos, SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 1.0f, 1.0f);
+            }
+
             return true;
         } else {
             Dokipa.logWithLevel(level, "Door Block (summon)", "Could not add door " + doorUUID + " at " + pos);
@@ -79,7 +90,16 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
         if(level.getBlockState(pos.above()).is(Dokipa.Dokipa_Door.get())) {
             level.setBlock(pos.above(), Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
         }
-        // todo particles and sound
+
+        // particles and sound
+        if(level instanceof ServerLevel serverLevel) {
+            double x = pos.getX() + 0.5;
+            double y = pos.getY() + 1;
+            double z = pos.getZ() + 0.5;
+            serverLevel.sendParticles(ParticleTypes.ASH, x, y, z, 10, 0, 0, 0, 1);
+            serverLevel.playSound(null, pos, SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 1.0f, 1.0f);
+        }
+
         return true;
     }
 

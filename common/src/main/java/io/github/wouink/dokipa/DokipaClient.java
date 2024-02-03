@@ -35,7 +35,9 @@ public class DokipaClient {
                     lookingAt = ((BlockHitResult) res).getBlockPos();
                 }
 
-                if(lookingAt == null) {
+                if(lookingAt == C2S_SummonDoorMessage.Unsummon_Pos) {
+                    Dokipa.LOG.error("Client is looking at special Unsummon_Pos " + C2S_SummonDoorMessage.Unsummon_Pos);
+                } else if(lookingAt == null) {
                     // the player is not looking at any block -> remove the door
                     new C2S_SummonDoorMessage(player.getUUID(), C2S_SummonDoorMessage.Unsummon_Pos, Direction.NORTH).sendToServer();
                 } else {
