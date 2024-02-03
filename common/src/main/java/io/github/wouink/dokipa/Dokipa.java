@@ -60,6 +60,7 @@ public class Dokipa {
 
     public static void logWithLevel(Level level, String source, String message) {
         String side = level.isClientSide() ? "client" : "server";
-        LOG.info("[" + source + " / " + side + "] " + message);
+        String dimension = level.dimension().location().toString();
+        LOG.info("[" + source + " / " + dimension + " / " + side + "] " + message);
     }
 }

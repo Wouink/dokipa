@@ -2,7 +2,9 @@ package io.github.wouink.dokipa.server;
 
 import io.github.wouink.dokipa.Dokipa;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
@@ -137,5 +139,13 @@ public class DokipaDataManager extends SavedData {
     public void setRoomPos(UUID doorUUID, BlockPos pos) {
         this.doors.get(doorUUID).setRoomPos(pos);
         setDirty();
+    }
+
+    public void setDoorDimension(UUID doorUUID, ServerLevel dim) {
+        this.doors.get(doorUUID).setDimension(dim.dimension().location());
+    }
+
+    public ServerLevel getDoorDimension(UUID doorUUID, MinecraftServer server) {
+        return server.getLevel(ResourceKey.create(Registries.DIMENSION, this.doors.get(doorUUID).getDimension()));
     }
 }

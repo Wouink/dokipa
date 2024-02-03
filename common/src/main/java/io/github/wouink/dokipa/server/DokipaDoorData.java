@@ -2,6 +2,7 @@ package io.github.wouink.dokipa.server;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 
 import java.util.UUID;
@@ -10,6 +11,7 @@ public class DokipaDoorData {
     private BlockPos pos;
     private BlockPos roomPos;
     private UUID owner;
+    private ResourceLocation dimension;
 
     public DokipaDoorData(BlockPos pos, UUID owner) {
         this.pos = pos;
@@ -32,6 +34,8 @@ public class DokipaDoorData {
             int z = tag.getInt("RoomZ");
             this.roomPos = new BlockPos(x, y, z);
         } else this.roomPos = null;
+        if(tag.contains("Dimension")) this.dimension = new ResourceLocation(tag.getString("dimension"));
+        else this.dimension = new ResourceLocation("minecraft", "overworld");
     }
 
     public CompoundTag save(CompoundTag tag) {
@@ -46,6 +50,7 @@ public class DokipaDoorData {
             tag.putInt("RoomY", roomPos.getY());
             tag.putInt("RoomZ", roomPos.getZ());
         }
+        if(dimension != null) tag.putString("Dimension", dimension.toString());
         return tag;
     }
 
@@ -74,5 +79,13 @@ public class DokipaDoorData {
 
     public BlockPos getRoomPos() {
         return this.roomPos;
+    }
+
+    public ResourceLocation getDimension() {
+        return this.dimension;
+    }
+
+    public void setDimension(ResourceLocation dim) {
+        this.dimension = dim;
     }
 }

@@ -17,18 +17,15 @@ import java.util.UUID;
 
 public class C2S_SummonDoorMessage extends BaseC2SMessage {
     public static final BlockPos Unsummon_Pos = new BlockPos(0, -127, 0);
-    private UUID entityUUID;
     private BlockPos lookingAt;
     private Direction facing;
 
-    public C2S_SummonDoorMessage(UUID _entityUUID, BlockPos _lookingAt, Direction _facing) {
-        this.entityUUID = _entityUUID;
+    public C2S_SummonDoorMessage(BlockPos _lookingAt, Direction _facing) {
         this.lookingAt = _lookingAt;
         this.facing = _facing;
     }
 
     public C2S_SummonDoorMessage(FriendlyByteBuf buf) {
-        this.entityUUID = buf.readUUID();
         this.lookingAt = buf.readBlockPos();
         this.facing = Direction.values()[buf.readByte()];
     }
@@ -40,7 +37,6 @@ public class C2S_SummonDoorMessage extends BaseC2SMessage {
 
     @Override
     public void write(FriendlyByteBuf buf) {
-        buf.writeUUID(entityUUID);
         buf.writeBlockPos(lookingAt);
         buf.writeByte(facing.ordinal());
     }
@@ -48,22 +44,22 @@ public class C2S_SummonDoorMessage extends BaseC2SMessage {
     @Override
     public void handle(NetworkManager.PacketContext context) {
         context.queue(() -> {
-            Dokipa.LOG.info("Received Door Summon message for Entity " + entityUUID + " at " + lookingAt);
             Player player = context.getPlayer();
+            Dokipa.LOG.info("Received Door Summon message for Entity " + player.getUUID() + " at " + lookingAt);
 
             // the dokipa cannot summon his door when inside his door
             if(!player.level().dimension().location().equals(Dokipa.Dimension_Id)) {
                 MinecraftServer server = player.getServer();
                 DokipaDataManager dataManager = DokipaDataManager.getInstance(server);
-                UUID doorUUID = dataManager.getDoorForEntity(server.overworld().getEntity(entityUUID));
+                UUID doorUUID = dataManager.getDoorForEntity(player);
 
-                if(doorUUID != null) {
-                    Level level = server.overworld().getLevel();
+                if (doorUUID != null) {
+                    Level currentDoorLevel = dataManager.getDoorDimension(doorUUID, server);
+                    Level playerLevel = player.level();
                     BlockPos currentDoorPos = dataManager.getDoorPos(doorUUID);
-                    // todo unsummon in the door's current level instead of the dokipa's level
                     // todo what is the current door's chunk is not loaded
-                    if(currentDoorPos != null) DokipaDoorBlock.unsummon(level, currentDoorPos);
-                    if(!lookingAt.equals(Unsummon_Pos)) DokipaDoorBlock.summon(level, lookingAt.above(), doorUUID, facing);
+                    if (currentDoorPos != null) DokipaDoorBlock.unsummon(currentDoorLevel, currentDoorPos);
+                    if (!lookingAt.equals(Unsummon_Pos)) DokipaDoorBlock.summon(playerLevel, lookingAt.above(), doorUUID, facing);
                 }
             }
         });

@@ -58,6 +58,7 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
             level.setBlock(pos, base.setValue(HALF, DoubleBlockHalf.LOWER).setValue(FACING, facing).setValue(OPEN, false), Block.UPDATE_ALL);
             level.setBlock(pos.above(), base.setValue(HALF, DoubleBlockHalf.UPPER).setValue(FACING, facing).setValue(OPEN, false), Block.UPDATE_ALL);
             DokipaDataManager.getInstance(level.getServer()).setDoorPos(doorUUID, pos);
+            DokipaDataManager.getInstance(level.getServer()).setDoorDimension(doorUUID, (ServerLevel) level);
 
             // set door uuid in BlockEntity
             if(level.getBlockEntity(pos) instanceof DokipaDoorBlockEntity dokipaDoor) {
@@ -168,8 +169,8 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
 
                     if (level.dimension().equals(Dokipa.Dimension)) {
                         BlockPos outside = dataManager.getDoorPos(doorUUID);
-                        ServerLevel overworld = level.getServer().overworld();
-                        BlockState state = overworld.getBlockState(outside);
+                        ServerLevel otherside = dataManager.getDoorDimension(doorUUID, level.getServer());
+                        BlockState state = otherside.getBlockState(outside);
 
                         Direction facing = Direction.EAST;
                         if(state.is(this)) facing = state.getValue(FACING);
@@ -177,7 +178,7 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
                         // todo if the door is not summoned on the other side, refuse tp
 
                         BlockPos tp = outside.relative(facing, 1);
-                        entity.teleportTo(overworld, tp.getX() + 0.5, tp.getY(), tp.getZ() + 0.5, Set.of(), 0, 0);
+                        entity.teleportTo(otherside, tp.getX() + 0.5, tp.getY(), tp.getZ() + 0.5, Set.of(), 0, 0);
                     } else {
                         ServerLevel doorsLevel = level.getServer().getLevel(Dokipa.Dimension);
                         if(doorsLevel != null) {
