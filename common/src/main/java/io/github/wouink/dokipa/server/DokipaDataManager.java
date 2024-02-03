@@ -18,6 +18,7 @@ public class DokipaDataManager extends SavedData {
     private static DokipaDataManager instance = null;
 
     private HashMap<UUID, DokipaDoorData> doors = new HashMap<>();
+    private int generatedRooms = 0;
 
     @Override
     public CompoundTag save(CompoundTag tag) {
@@ -34,6 +35,7 @@ public class DokipaDataManager extends SavedData {
             n++;
         }
         tag.put("SavedDoors", doorsTag);
+        tag.putInt("GeneratedRooms", generatedRooms);
         return tag;
     }
 
@@ -48,7 +50,15 @@ public class DokipaDataManager extends SavedData {
             dataManager.doors.put(doorUUID, doorData);
             i++;
         }
+        dataManager.generatedRooms = tag.getInt("GeneratedRooms");
         return dataManager;
+    }
+
+    public int getNextRoomNumber() {
+        int ret = generatedRooms;
+        generatedRooms++;
+        setDirty();
+        return ret;
     }
 
     public UUID newDoor(BlockPos pos) {
@@ -114,5 +124,18 @@ public class DokipaDataManager extends SavedData {
             ServerLevel overworld = server.overworld();
             return Objects.requireNonNull(overworld).getDataStorage().computeIfAbsent(DokipaDataManager::load, DokipaDataManager::new, DATA_NAME);
         }
+    }
+
+    public boolean isRoomGenerated(UUID doorUUID) {
+        return this.doors.get(doorUUID).getRoomPos() != null;
+    }
+
+    public BlockPos getRoomPos(UUID doorUUID) {
+        return this.doors.get(doorUUID).getRoomPos();
+    }
+
+    public void setRoomPos(UUID doorUUID, BlockPos pos) {
+        this.doors.get(doorUUID).setRoomPos(pos);
+        setDirty();
     }
 }

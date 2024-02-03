@@ -8,6 +8,7 @@ import java.util.UUID;
 
 public class DokipaDoorData {
     private BlockPos pos;
+    private BlockPos roomPos;
     private UUID owner;
 
     public DokipaDoorData(BlockPos pos, UUID owner) {
@@ -25,6 +26,12 @@ public class DokipaDoorData {
         if(tag.contains("OwnerUUID")) {
             this.owner = tag.getUUID("OwnerUUID");
         } else this.owner = null;
+        if(tag.contains("RoomX")) {
+            int x = tag.getInt("RoomX");
+            int y = tag.getInt("RoomY");
+            int z = tag.getInt("RoomZ");
+            this.roomPos = new BlockPos(x, y, z);
+        } else this.roomPos = null;
     }
 
     public CompoundTag save(CompoundTag tag) {
@@ -34,6 +41,11 @@ public class DokipaDoorData {
             tag.putInt("Z", pos.getZ());
         }
         if(owner != null) tag.putUUID("OwnerUUID", owner);
+        if(roomPos != null) {
+            tag.putInt("RoomX", roomPos.getX());
+            tag.putInt("RoomY", roomPos.getY());
+            tag.putInt("RoomZ", roomPos.getZ());
+        }
         return tag;
     }
 
@@ -47,11 +59,20 @@ public class DokipaDoorData {
         return true;
     }
 
+    public boolean setRoomPos(BlockPos pos) {
+        this.roomPos = pos;
+        return true;
+    }
+
     public UUID getOwner() {
         return this.owner;
     }
 
     public BlockPos getPos() {
         return this.pos;
+    }
+
+    public BlockPos getRoomPos() {
+        return this.roomPos;
     }
 }

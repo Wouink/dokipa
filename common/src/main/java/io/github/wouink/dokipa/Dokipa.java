@@ -9,8 +9,12 @@ import io.github.wouink.dokipa.network.C2S_SummonDoorMessage;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import org.apache.logging.log4j.LogManager;
@@ -27,6 +31,7 @@ public class Dokipa {
     public static final MessageType C2S_DOOR_SUMMON_MSG = NET.registerC2S("c2s_door_summon_msg", C2S_SummonDoorMessage::new);
 
     public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(MODID, Registries.BLOCK);
+    public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(MODID, Registries.ITEM);
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(MODID, Registries.BLOCK_ENTITY_TYPE);
 
     public static final RegistrySupplier<Block> Dokipa_Door = BLOCKS.register("dokipa_door", () -> new DokipaDoorBlock(BlockBehaviour.Properties.of().strength(-1.0F, 3600000.0F)));
@@ -34,6 +39,9 @@ public class Dokipa {
             "dokipa_door",
             () -> BlockEntityType.Builder.of(DokipaDoorBlockEntity::new, new Block[]{Dokipa_Door.get()}).build(null)
     );
+
+    public static final RegistrySupplier<Block> Room_Separator = BLOCKS.register("room_separator", () -> new Block(BlockBehaviour.Properties.copy(Blocks.BEDROCK).lightLevel(blockState -> 15)));
+    public static final RegistrySupplier<Item> Room_Separator_Item = ITEMS.register("room_separator", () -> new BlockItem(Room_Separator.get(), new Item.Properties().arch$tab(CreativeModeTabs.OP_BLOCKS)));
 
     // todo gamerule maxDokipas
     // cf https://github.com/TeamTwilight/twilightforest/blob/1.20.x/src/main/java/twilightforest/TwilightForestMod.java#L67
@@ -46,6 +54,7 @@ public class Dokipa {
     public static void init() {
         BLOCKS.register();
         BLOCK_ENTITIES.register();
+        ITEMS.register();
         InteractionEvent.RIGHT_CLICK_BLOCK.register(DokipaDoorBlock::interact);
     }
 

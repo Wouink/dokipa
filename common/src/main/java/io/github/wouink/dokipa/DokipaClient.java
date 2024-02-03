@@ -2,7 +2,9 @@ package io.github.wouink.dokipa;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.architectury.event.events.client.ClientTickEvent;
+import dev.architectury.platform.Platform;
 import dev.architectury.registry.client.keymappings.KeyMappingRegistry;
+import dev.architectury.utils.Env;
 import io.github.wouink.dokipa.network.C2S_SummonDoorMessage;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.core.BlockPos;
@@ -21,6 +23,14 @@ public class DokipaClient {
     );
 
     public static void init() {
+        if(Platform.getEnvironment() != Env.CLIENT) {
+            Dokipa.LOG.error("Attempt to init Dokipa client on server");
+            return;
+        }
+
+        // todo render like an end gateway (but it crashes)
+        //RenderTypeRegistry.register(RenderType.endGateway(), Dokipa.Room_Separator.get());
+
         KeyMappingRegistry.register(Door_Summon);
         // todo this checks if the key is down
         // but it it not called only once when the player presses the key

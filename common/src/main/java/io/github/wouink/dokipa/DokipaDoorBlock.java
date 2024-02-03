@@ -2,6 +2,7 @@ package io.github.wouink.dokipa;
 
 import dev.architectury.event.EventResult;
 import io.github.wouink.dokipa.server.DokipaDataManager;
+import io.github.wouink.dokipa.server.RoomGenerator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
@@ -165,12 +166,29 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
                 } else {
                     ServerLevel doorsLevel = level.getServer().getLevel(Dokipa.Dimension);
                     if(doorsLevel != null) {
-                        // we cannot use entity.changeDimension(doorsLevel) here
-                        // because changeDimension tries to find a portal, a new entity position, etc.
-                        // which results in nothing on the other side (F3 shows "waiting for chunk...")
-                        entity.teleportTo(doorsLevel, 0, 10, 0, Set.of(), 0, 0);
-                        // todo generate the room in the dimension
-                        // todo position the entity in the room
+                        // get the door uuid to get its room position in the dimension (and generate the room if needed)
+                        BlockPos blockEntityPos = blockState.getValue(HALF) == DoubleBlockHalf.LOWER ? blockPos : blockPos.below();
+                        if(level.getBlockEntity(blockEntityPos) instanceof DokipaDoorBlockEntity dokipaDoor) {
+                            UUID doorUUID = dokipaDoor.getDoorUUID();
+                            DokipaDataManager dataManager = DokipaDataManager.getInstance(level.getServer());
+                            BlockPos doorPos = null;
+
+                            // generate the room if needed
+                            if(!dataManager.isRoomGenerated(doorUUID)) {
+                                BlockPos generate = RoomGenerator.getPosForRoom(dataManager.getNextRoomNumber());
+                                doorPos = RoomGenerator.generateRoom(doorsLevel, generate, doorUUID);
+                                if(doorPos != RoomGenerator.Null_Door_Pos) dataManager.setRoomPos(doorUUID, doorPos);
+                            } else {
+                                doorPos = dataManager.getRoomPos(doorUUID);
+                            }
+
+                            // we cannot use entity.changeDimension(doorsLevel) here
+                            // because changeDimension tries to find a portal, a new entity position, etc.
+                            // which results in nothing on the other side (F3 shows "waiting for chunk...")
+                            if(doorPos != null && doorPos != RoomGenerator.Null_Door_Pos) {
+                                entity.teleportTo(doorsLevel, doorPos.getX() + 0.5, doorPos.getY(), doorPos.getZ() + 1, Set.of(), 0, 0);
+                            }
+                        }
                     }
                 }
             }
