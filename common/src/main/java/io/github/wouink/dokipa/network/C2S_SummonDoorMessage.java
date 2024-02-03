@@ -10,6 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 
 import java.util.UUID;
@@ -48,14 +49,22 @@ public class C2S_SummonDoorMessage extends BaseC2SMessage {
     public void handle(NetworkManager.PacketContext context) {
         context.queue(() -> {
             Dokipa.LOG.info("Received Door Summon message for Entity " + entityUUID + " at " + lookingAt);
-            MinecraftServer server = context.getPlayer().getServer();
-            DokipaDataManager dataManager = DokipaDataManager.getInstance(server);
-            UUID doorUUID = dataManager.getDoorForEntity(server.overworld().getEntity(entityUUID));
-            if(doorUUID != null) {
-                Level level = server.overworld().getLevel();
-                BlockPos currentDoorPos = dataManager.getDoorPos(doorUUID);
-                if(currentDoorPos != null) DokipaDoorBlock.unsummon(level, currentDoorPos);
-                if(!lookingAt.equals(Unsummon_Pos)) DokipaDoorBlock.summon(level, lookingAt.above(), doorUUID, facing);
+            Player player = context.getPlayer();
+
+            // the dokipa cannot summon his door when inside his door
+            if(!player.level().dimension().location().equals(Dokipa.Dimension_Id)) {
+                MinecraftServer server = player.getServer();
+                DokipaDataManager dataManager = DokipaDataManager.getInstance(server);
+                UUID doorUUID = dataManager.getDoorForEntity(server.overworld().getEntity(entityUUID));
+
+                if(doorUUID != null) {
+                    Level level = server.overworld().getLevel();
+                    BlockPos currentDoorPos = dataManager.getDoorPos(doorUUID);
+                    // todo unsummon in the door's current level instead of the dokipa's level
+                    // todo what is the current door's chunk is not loaded
+                    if(currentDoorPos != null) DokipaDoorBlock.unsummon(level, currentDoorPos);
+                    if(!lookingAt.equals(Unsummon_Pos)) DokipaDoorBlock.summon(level, lookingAt.above(), doorUUID, facing);
+                }
             }
         });
     }

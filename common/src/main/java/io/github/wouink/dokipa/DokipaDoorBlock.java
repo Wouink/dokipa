@@ -10,6 +10,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -25,6 +26,7 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Set;
 import java.util.UUID;
 
 public class DokipaDoorBlock extends Block implements EntityBlock {
@@ -110,6 +112,9 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
         if(!state.is(Dokipa.Dokipa_Door.get())) return EventResult.pass();
 
         boolean interact = false;
+
+        // todo check if interacted with from the correct side (cannot open the door from it's back)
+
         if(!level.isClientSide()) {
             Dokipa.logWithLevel(level, "Door Block", "Right click on Dokipa's door");
             BlockPos blockEntityPos = state.getValue(HALF) == DoubleBlockHalf.LOWER ? pos : pos.below();
@@ -146,6 +151,30 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
             return EventResult.interruptTrue();
         }
         return EventResult.interruptFalse();
+    }
+
+    @Override
+    public void entityInside(BlockState blockState, Level level, BlockPos blockPos, Entity entity) {
+        super.entityInside(blockState, level, blockPos, entity);
+
+        if(!level.isClientSide() && blockState.getValue(OPEN).booleanValue()) {
+            // todo (optional) check if really inside the door
+            if(entity.canChangeDimensions()) {
+                if (level.dimension().equals(Dokipa.Dimension)) {
+                    // todo find the door associated on the other side
+                } else {
+                    ServerLevel doorsLevel = level.getServer().getLevel(Dokipa.Dimension);
+                    if(doorsLevel != null) {
+                        // we cannot use entity.changeDimension(doorsLevel) here
+                        // because changeDimension tries to find a portal, a new entity position, etc.
+                        // which results in nothing on the other side (F3 shows "waiting for chunk...")
+                        entity.teleportTo(doorsLevel, 0, 10, 0, Set.of(), 0, 0);
+                        // todo generate the room in the dimension
+                        // todo position the entity in the room
+                    }
+                }
+            }
+        }
     }
 
     @Nullable

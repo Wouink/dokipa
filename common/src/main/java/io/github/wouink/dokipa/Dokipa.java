@@ -7,6 +7,8 @@ import dev.architectury.registry.registries.DeferredRegister;
 import dev.architectury.registry.registries.RegistrySupplier;
 import io.github.wouink.dokipa.network.C2S_SummonDoorMessage;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -17,6 +19,9 @@ import org.apache.logging.log4j.Logger;
 public class Dokipa {
     public static final String MODID = "dokipa";
     public static final Logger LOG = LogManager.getLogger("Dokipa");
+
+    public static final ResourceLocation Dimension_Id = new ResourceLocation(MODID, "doors");
+    public static final ResourceKey<Level> Dimension = ResourceKey.create(Registries.DIMENSION, Dimension_Id);
 
     public static final SimpleNetworkManager NET = SimpleNetworkManager.create(MODID);
     public static final MessageType C2S_DOOR_SUMMON_MSG = NET.registerC2S("c2s_door_summon_msg", C2S_SummonDoorMessage::new);
@@ -29,6 +34,14 @@ public class Dokipa {
             "dokipa_door",
             () -> BlockEntityType.Builder.of(DokipaDoorBlockEntity::new, new Block[]{Dokipa_Door.get()}).build(null)
     );
+
+    // todo gamerule maxDokipas
+    // cf https://github.com/TeamTwilight/twilightforest/blob/1.20.x/src/main/java/twilightforest/TwilightForestMod.java#L67
+
+    // adding the dimensions consist of a single json file in the data/dokipa/dimension folder
+    // file was generated using https://worldgen.syldium.dev/
+    // doc at https://minecraft.wiki/w/Custom_dimension
+    // and at https://fabricmc.net/wiki/tutorial:dimensionconcepts
 
     public static void init() {
         BLOCKS.register();
