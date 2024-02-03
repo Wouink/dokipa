@@ -161,16 +161,26 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
         if(!level.isClientSide() && blockState.getValue(OPEN).booleanValue()) {
             // todo (optional) check if really inside the door
             if(entity.canChangeDimensions()) {
-                if (level.dimension().equals(Dokipa.Dimension)) {
-                    // todo find the door associated on the other side
-                } else {
-                    ServerLevel doorsLevel = level.getServer().getLevel(Dokipa.Dimension);
-                    if(doorsLevel != null) {
-                        // get the door uuid to get its room position in the dimension (and generate the room if needed)
-                        BlockPos blockEntityPos = blockState.getValue(HALF) == DoubleBlockHalf.LOWER ? blockPos : blockPos.below();
-                        if(level.getBlockEntity(blockEntityPos) instanceof DokipaDoorBlockEntity dokipaDoor) {
-                            UUID doorUUID = dokipaDoor.getDoorUUID();
-                            DokipaDataManager dataManager = DokipaDataManager.getInstance(level.getServer());
+                BlockPos blockEntityPos = blockState.getValue(HALF) == DoubleBlockHalf.LOWER ? blockPos : blockPos.below();
+                if(level.getBlockEntity(blockEntityPos) instanceof DokipaDoorBlockEntity dokipaDoor) {
+                    UUID doorUUID = dokipaDoor.getDoorUUID();
+                    DokipaDataManager dataManager = DokipaDataManager.getInstance(level.getServer());
+
+                    if (level.dimension().equals(Dokipa.Dimension)) {
+                        BlockPos outside = dataManager.getDoorPos(doorUUID);
+                        ServerLevel overworld = level.getServer().overworld();
+                        BlockState state = overworld.getBlockState(outside);
+
+                        Direction facing = Direction.EAST;
+                        if(state.is(this)) facing = state.getValue(FACING);
+
+                        // todo if the door is not summoned on the other side, refuse tp
+
+                        BlockPos tp = outside.relative(facing, 1);
+                        entity.teleportTo(overworld, tp.getX() + 0.5, tp.getY(), tp.getZ() + 0.5, Set.of(), 0, 0);
+                    } else {
+                        ServerLevel doorsLevel = level.getServer().getLevel(Dokipa.Dimension);
+                        if(doorsLevel != null) {
                             BlockPos doorPos = null;
 
                             // generate the room if needed
@@ -186,7 +196,7 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
                             // because changeDimension tries to find a portal, a new entity position, etc.
                             // which results in nothing on the other side (F3 shows "waiting for chunk...")
                             if(doorPos != null && doorPos != RoomGenerator.Null_Door_Pos) {
-                                entity.teleportTo(doorsLevel, doorPos.getX() + 0.5, doorPos.getY(), doorPos.getZ() + 1, Set.of(), 0, 0);
+                                entity.teleportTo(doorsLevel, doorPos.getX() + 0.5, doorPos.getY(), doorPos.getZ() + 2, Set.of(), 0, 0);
                             }
                         }
                     }
