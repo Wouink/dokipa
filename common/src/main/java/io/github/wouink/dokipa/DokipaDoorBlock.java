@@ -7,6 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -100,7 +101,7 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
             double x = pos.getX() + 0.5;
             double y = pos.getY() + 1;
             double z = pos.getZ() + 0.5;
-            serverLevel.sendParticles(ParticleTypes.ASH, x, y, z, 10, 0, 0, 0, 1);
+            serverLevel.sendParticles(ParticleTypes.FLAME, x, y, z, 10, 0, 0, 0, 1);
             serverLevel.playSound(null, pos, SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 1.0f, 1.0f);
         }
 
@@ -136,23 +137,44 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
         }
         if(interact) {
             Dokipa.logWithLevel(level, "Door Block", "Opening/closing door");
-
-            // 1st half
-            BlockState newState1 = state.cycle(OPEN);
-            level.setBlockAndUpdate(pos, newState1);
-            Dokipa.logWithLevel(level, "Door Block (toggleOpen)", "newState.OPEN = " + newState1.getValue(OPEN).booleanValue());
-
-            // 2nd half
-            // todo use updateShape instead. here there is a 1 tick delay between the first half and the second one
-            BlockPos secondHalfPos = newState1.getValue(HALF) == DoubleBlockHalf.LOWER ? pos.above() : pos.below();
-            BlockState newState2 = level.getBlockState(secondHalfPos).setValue(OPEN, newState1.getValue(OPEN));
-            level.setBlockAndUpdate(secondHalfPos, newState2);
-
-            // sound
-            level.playSound(null, pos, newState1.getValue(OPEN).booleanValue() ? SoundEvents.WOODEN_DOOR_OPEN : SoundEvents.WOODEN_DOOR_CLOSE, SoundSource.BLOCKS, 1.0f, level.getRandom().nextFloat() * 0.1f + 0.9f);
+            boolean newOpen = !state.getValue(OPEN);
+            BlockPos lowerPos = state.getValue(HALF) == DoubleBlockHalf.LOWER ? pos : pos.below();
+            setOpen((ServerLevel) level, lowerPos, newOpen);
             return EventResult.interruptTrue();
         }
         return EventResult.interruptFalse();
+    }
+
+    public static void setOpen(ServerLevel level, BlockPos lowerPos, boolean open) {
+        if(level.getBlockEntity(lowerPos) instanceof DokipaDoorBlockEntity dokipaDoor) {
+            UUID doorUUID = dokipaDoor.getDoorUUID();
+            MinecraftServer server = level.getServer();
+            DokipaDataManager dataManager = DokipaDataManager.getInstance(server);
+
+            ServerLevel otherside = null;
+            BlockPos othersideLowerPos = null;
+            if(level.dimension().equals(Dokipa.Dimension)) {
+                otherside = dataManager.getDoorDimension(doorUUID, server);
+                othersideLowerPos = dataManager.getDoorPos(doorUUID);
+            } else {
+                otherside = server.getLevel(Dokipa.Dimension);
+                othersideLowerPos = dataManager.getRoomPos(doorUUID);
+            }
+
+            BlockState door = level.getBlockState(lowerPos);
+            level.setBlockAndUpdate(lowerPos, door.setValue(OPEN, open));
+            door = level.getBlockState(lowerPos.above());
+            level.setBlockAndUpdate(lowerPos.above(), door.setValue(OPEN, open));
+            level.playSound(null, lowerPos, open ? SoundEvents.WOODEN_DOOR_OPEN : SoundEvents.WOODEN_DOOR_CLOSE, SoundSource.BLOCKS, 1.0f, level.getRandom().nextFloat() * 0.1f + 0.9f);
+
+            if(otherside != null && othersideLowerPos != null) {
+                door = otherside.getBlockState(othersideLowerPos);
+                otherside.setBlockAndUpdate(othersideLowerPos, door.setValue(OPEN, open));
+                door = otherside.getBlockState(othersideLowerPos.above());
+                otherside.setBlockAndUpdate(othersideLowerPos.above(), door.setValue(OPEN, open));
+                otherside.playSound(null, othersideLowerPos, open ? SoundEvents.WOODEN_DOOR_OPEN : SoundEvents.WOODEN_DOOR_CLOSE, SoundSource.BLOCKS, 1.0f, level.getRandom().nextFloat() * 0.1f + 0.9f);
+            }
+        }
     }
 
     @Override
@@ -170,15 +192,15 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
                     if (level.dimension().equals(Dokipa.Dimension)) {
                         BlockPos outside = dataManager.getDoorPos(doorUUID);
                         ServerLevel otherside = dataManager.getDoorDimension(doorUUID, level.getServer());
-                        BlockState state = otherside.getBlockState(outside);
+                        if(otherside != null) {
+                            BlockState state = otherside.getBlockState(outside);
 
-                        Direction facing = Direction.EAST;
-                        if(state.is(this)) facing = state.getValue(FACING);
+                            Direction facing = Direction.EAST;
+                            if (state.is(this)) facing = state.getValue(FACING);
 
-                        // todo if the door is not summoned on the other side, refuse tp
-
-                        BlockPos tp = outside.relative(facing, 1);
-                        entity.teleportTo(otherside, tp.getX() + 0.5, tp.getY(), tp.getZ() + 0.5, Set.of(), 0, 0);
+                            BlockPos tp = outside.relative(facing, 1);
+                            entity.teleportTo(otherside, tp.getX() + 0.5, tp.getY(), tp.getZ() + 0.5, Set.of(), facing.toYRot(), 0);
+                        }
                     } else {
                         ServerLevel doorsLevel = level.getServer().getLevel(Dokipa.Dimension);
                         if(doorsLevel != null) {

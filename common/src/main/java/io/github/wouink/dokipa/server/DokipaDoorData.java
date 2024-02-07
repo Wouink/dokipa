@@ -34,7 +34,7 @@ public class DokipaDoorData {
             int z = tag.getInt("RoomZ");
             this.roomPos = new BlockPos(x, y, z);
         } else this.roomPos = null;
-        if(tag.contains("Dimension")) this.dimension = new ResourceLocation(tag.getString("dimension"));
+        if(tag.contains("Dimension")) this.dimension = new ResourceLocation(tag.getString("Dimension"));
         else this.dimension = new ResourceLocation("minecraft", "overworld");
     }
 

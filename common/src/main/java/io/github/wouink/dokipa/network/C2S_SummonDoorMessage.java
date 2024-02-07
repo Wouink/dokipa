@@ -48,19 +48,34 @@ public class C2S_SummonDoorMessage extends BaseC2SMessage {
             Dokipa.LOG.info("Received Door Summon message for Entity " + player.getUUID() + " at " + lookingAt);
 
             // the dokipa cannot summon his door when inside his door
-            if(!player.level().dimension().location().equals(Dokipa.Dimension_Id)) {
+            if(!player.level().dimension().equals(Dokipa.Dimension)) {
                 MinecraftServer server = player.getServer();
                 DokipaDataManager dataManager = DokipaDataManager.getInstance(server);
                 UUID doorUUID = dataManager.getDoorForEntity(player);
+                Dokipa.LOG.info("doorUUID=" + doorUUID);
 
                 if (doorUUID != null) {
+                    Dokipa.LOG.info("doorUUID is not null");
                     Level currentDoorLevel = dataManager.getDoorDimension(doorUUID, server);
+                    Dokipa.LOG.info("currentDoorLevel=" + currentDoorLevel);
                     Level playerLevel = player.level();
                     BlockPos currentDoorPos = dataManager.getDoorPos(doorUUID);
-                    // todo what is the current door's chunk is not loaded
-                    if (currentDoorPos != null) DokipaDoorBlock.unsummon(currentDoorLevel, currentDoorPos);
-                    if (!lookingAt.equals(Unsummon_Pos)) DokipaDoorBlock.summon(playerLevel, lookingAt.above(), doorUUID, facing);
+                    Dokipa.LOG.info("currentDoorPos=" + currentDoorPos);
+                    Dokipa.LOG.info("playerLevel=" + playerLevel.dimension().location() + ", lookingAt=" + lookingAt);
+                    // what if the current door's chunk/dimension is not loaded? -> the door is still removed, great!
+                    if (currentDoorPos != null) {
+                        Dokipa.logWithLevel(currentDoorLevel, "handle", "Removing door at " + currentDoorPos);
+                        DokipaDoorBlock.unsummon(currentDoorLevel, currentDoorPos);
+                    }
+                    if (!lookingAt.equals(Unsummon_Pos)) {
+                        Dokipa.logWithLevel(playerLevel, "handle", "Adding door at " + lookingAt.above());
+                        DokipaDoorBlock.summon(playerLevel, lookingAt.above(), doorUUID, facing);
+                    }
+                } else {
+                    Dokipa.LOG.error("The entity does not have a door");
                 }
+            } else {
+                Dokipa.LOG.error("Cannot summon the door in the doors dimension");
             }
         });
     }

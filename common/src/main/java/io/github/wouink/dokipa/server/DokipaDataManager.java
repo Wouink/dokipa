@@ -101,7 +101,7 @@ public class DokipaDataManager extends SavedData {
     }
 
     public boolean isOwner(UUID doorUUID, Entity entity) {
-        Dokipa.logWithLevel(entity.level(), "Data Manager (isOwner)", "Door UUID is " + doorUUID + ", door owner is " + getDoorOwner(doorUUID) + ", entity is " + entity.getUUID());
+        //Dokipa.logWithLevel(entity.level(), "Data Manager (isOwner)", "Door UUID is " + doorUUID + ", door owner is " + getDoorOwner(doorUUID) + ", entity is " + entity.getUUID());
         return hasOwner(doorUUID) && getDoorOwner(doorUUID).equals(entity.getUUID());
     }
 
@@ -113,6 +113,7 @@ public class DokipaDataManager extends SavedData {
             UUID doorUUID = it.next();
             if(isOwner(doorUUID, entity)) foundDoor = doorUUID;
         }
+        if(foundDoor != null) Dokipa.logWithLevel(entity.level(), "getDoorForEntity", "Found door " + foundDoor + " for entity " + entity.getUUID());
         return foundDoor;
     }
 
