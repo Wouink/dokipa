@@ -1,8 +1,9 @@
 package io.github.wouink.dokipa;
 
-import io.github.wouink.dokipa.server.DokipaDataManager;
+import io.github.wouink.dokipa.server.DokipaSavedData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -37,29 +38,47 @@ public class DokipaDoorBlockEntity extends BlockEntity {
     public void initialize() {
         if(!getLevel().isClientSide() && this.doorUUID == null) {
             Dokipa.logWithLevel(getLevel(), "Door Block Entity", "Initializing door at " + getBlockPos());
-            this.doorUUID = DokipaDataManager.getInstance(getLevel().getServer()).newDoor(getBlockPos());
+            DokipaSavedData savedData = Dokipa.savedData(level.getServer());
+            this.doorUUID = savedData.newDoor(getBlockPos(), (ServerLevel) getLevel());
         }
     }
 
     public boolean hasOwner() {
         initialize();
-        return DokipaDataManager.getInstance(getLevel().getServer()).hasOwner(this.doorUUID);
+        if(!getLevel().isClientSide()) {
+            DokipaSavedData savedData = Dokipa.savedData(getLevel().getServer());
+            return savedData.doorInfo(getDoorUUID()).hasOwner();
+        } else {
+            Dokipa.LOG.error("DokipaDoorBlockEntity.hasOwner called on client");
+            return true;
+        }
     }
 
     public boolean trySetOwner(Entity entity) {
         initialize();
-        if(!DokipaDataManager.getInstance(getLevel().getServer()).isDokipa(entity)) {
-            DokipaDataManager.getInstance(getLevel().getServer()).setDoorOwner(this.doorUUID, entity);
-            return true;
+        boolean ownerSet = false;
+        if(!getLevel().isClientSide()) {
+            DokipaSavedData savedData = Dokipa.savedData(getLevel().getServer());
+            if(savedData.doorForEntity(entity) == null) {
+                savedData.doorInfo(getDoorUUID()).setOwner(entity);
+                savedData.setDirty();
+                ownerSet = true;
+            }
         } else {
-            Dokipa.logWithLevel(getLevel(), "Door Block Entity", "Entity " + entity.getUUID() + " is already a dokipa");
-            return false;
+            Dokipa.LOG.error("DokipaDoorBlockEntity.trySetOwner called on client");
         }
+        return ownerSet;
     }
 
     public boolean isOwner(Entity entity) {
         initialize();
-        return DokipaDataManager.getInstance(getLevel().getServer()).isOwner(this.doorUUID, entity);
+        if(!getLevel().isClientSide()) {
+            DokipaSavedData savedData = Dokipa.savedData(getLevel().getServer());
+            return savedData.doorInfo(getDoorUUID()).isOwner(entity);
+        } else {
+            Dokipa.LOG.error("DokipaDoorBlockEntity.isOwner called on client");
+        }
+        return false;
     }
 
     public UUID getDoorUUID() {

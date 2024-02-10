@@ -5,15 +5,15 @@ import dev.architectury.networking.simple.BaseC2SMessage;
 import dev.architectury.networking.simple.MessageType;
 import io.github.wouink.dokipa.Dokipa;
 import io.github.wouink.dokipa.DokipaDoorBlock;
-import io.github.wouink.dokipa.server.DokipaDataManager;
+import io.github.wouink.dokipa.server.DokipaSavedData;
+import io.github.wouink.dokipa.server.DoorInfo;
+import io.github.wouink.dokipa.server.LocalizedBlockPos;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-
-import java.util.UUID;
 
 public class C2S_SummonDoorMessage extends BaseC2SMessage {
     public static final BlockPos Unsummon_Pos = new BlockPos(0, -127, 0);
@@ -45,37 +45,23 @@ public class C2S_SummonDoorMessage extends BaseC2SMessage {
     public void handle(NetworkManager.PacketContext context) {
         context.queue(() -> {
             Player player = context.getPlayer();
-            Dokipa.LOG.info("Received Door Summon message for Entity " + player.getUUID() + " at " + lookingAt);
+            Level playerLevel = player.level();
 
             // the dokipa cannot summon his door when inside his door
-            if(!player.level().dimension().equals(Dokipa.Dimension)) {
+            if(!playerLevel.dimension().equals(Dokipa.Dimension)) {
                 MinecraftServer server = player.getServer();
-                DokipaDataManager dataManager = DokipaDataManager.getInstance(server);
-                UUID doorUUID = dataManager.getDoorForEntity(player);
-                Dokipa.LOG.info("doorUUID=" + doorUUID);
+                DokipaSavedData savedData = Dokipa.savedData(server);
+                DoorInfo doorInfo = savedData.doorForEntity(player);
 
-                if (doorUUID != null) {
-                    Dokipa.LOG.info("doorUUID is not null");
-                    Level currentDoorLevel = dataManager.getDoorDimension(doorUUID, server);
-                    Dokipa.LOG.info("currentDoorLevel=" + currentDoorLevel);
-                    Level playerLevel = player.level();
-                    BlockPos currentDoorPos = dataManager.getDoorPos(doorUUID);
-                    Dokipa.LOG.info("currentDoorPos=" + currentDoorPos);
-                    Dokipa.LOG.info("playerLevel=" + playerLevel.dimension().location() + ", lookingAt=" + lookingAt);
-                    // what if the current door's chunk/dimension is not loaded? -> the door is still removed, great!
+                if (doorInfo != null) {
+                    LocalizedBlockPos currentDoorPos = doorInfo.placedPos();
                     if (currentDoorPos != null) {
-                        Dokipa.logWithLevel(currentDoorLevel, "handle", "Removing door at " + currentDoorPos);
-                        DokipaDoorBlock.unsummon(currentDoorLevel, currentDoorPos);
+                        currentDoorPos.executeAt(server, DokipaDoorBlock::unsummon);
                     }
                     if (!lookingAt.equals(Unsummon_Pos)) {
-                        Dokipa.logWithLevel(playerLevel, "handle", "Adding door at " + lookingAt.above());
-                        DokipaDoorBlock.summon(playerLevel, lookingAt.above(), doorUUID, facing);
+                        DokipaDoorBlock.summon(playerLevel, lookingAt.above(), doorInfo.uuid(), facing);
                     }
-                } else {
-                    Dokipa.LOG.error("The entity does not have a door");
                 }
-            } else {
-                Dokipa.LOG.error("Cannot summon the door in the doors dimension");
             }
         });
     }

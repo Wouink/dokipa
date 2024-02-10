@@ -1,8 +1,7 @@
 package io.github.wouink.dokipa;
 
 import dev.architectury.event.EventResult;
-import io.github.wouink.dokipa.server.DokipaDataManager;
-import io.github.wouink.dokipa.server.RoomGenerator;
+import io.github.wouink.dokipa.server.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
@@ -49,17 +48,20 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
     }
 
     public static boolean summon(Level level, BlockPos pos, UUID doorUUID, Direction facing) {
+        // check if we have room to summon the door
         BlockPos above = pos.above();
-        // todo check if the block below can sustain a door
-        // -> stateBelow.isFaceSturdy(..., Direction.UP)
-        if(level.getBlockState(pos).canBeReplaced() && level.getBlockState(above).canBeReplaced()) {
-            Dokipa.logWithLevel(level, "Door Block (summon)", "Adding door " + doorUUID + " at " + pos);
-            Dokipa.logWithLevel(level, "Door Block (summon)", "Facing = " + facing);
-            BlockState base = Dokipa.Dokipa_Door.get().defaultBlockState();
-            level.setBlock(pos, base.setValue(HALF, DoubleBlockHalf.LOWER).setValue(FACING, facing).setValue(OPEN, false), Block.UPDATE_ALL);
-            level.setBlock(pos.above(), base.setValue(HALF, DoubleBlockHalf.UPPER).setValue(FACING, facing).setValue(OPEN, false), Block.UPDATE_ALL);
-            DokipaDataManager.getInstance(level.getServer()).setDoorPos(doorUUID, pos);
-            DokipaDataManager.getInstance(level.getServer()).setDoorDimension(doorUUID, (ServerLevel) level);
+        boolean canSummon = level.getBlockState(pos).canBeReplaced() && level.getBlockState(above).canBeReplaced();
+
+        if(canSummon) {
+            Dokipa.logWithLevel(level, "Door Block (summon)", "Adding door " + doorUUID + " at " + pos + ", Facing = " + facing);
+
+            BlockState base = Dokipa.Dokipa_Door.get().defaultBlockState().setValue(FACING, facing).setValue(OPEN, false);
+            level.setBlock(pos, base.setValue(HALF, DoubleBlockHalf.LOWER), Block.UPDATE_ALL);
+            level.setBlock(above, base.setValue(HALF, DoubleBlockHalf.UPPER), Block.UPDATE_ALL);
+
+            DokipaSavedData savedData = Dokipa.savedData(level.getServer());
+            savedData.doorInfo(doorUUID).setPlacedPos(new LocalizedBlockPos(pos, level));
+            savedData.setDirty();
 
             // set door uuid in BlockEntity
             if(level.getBlockEntity(pos) instanceof DokipaDoorBlockEntity dokipaDoor) {
@@ -80,18 +82,23 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
         } else {
             Dokipa.logWithLevel(level, "Door Block (summon)", "Could not add door " + doorUUID + " at " + pos);
         }
+
         return false;
     }
 
     public static boolean unsummon(Level level, BlockPos pos) {
         Dokipa.logWithLevel(level, "Door Block (unsummon)", "Removing door at " + pos);
+
         if(level.getBlockState(pos).is(Dokipa.Dokipa_Door.get())) {
             if(level.getBlockEntity(pos) instanceof DokipaDoorBlockEntity dokipaDoor) {
                 UUID doorUUID = dokipaDoor.getDoorUUID();
-                DokipaDataManager.getInstance(level.getServer()).setDoorPos(doorUUID, null);
+                DokipaSavedData savedData = Dokipa.savedData(level.getServer());
+                savedData.doorInfo(doorUUID).setPlacedPos(null);
+                savedData.setDirty();
             }
             level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
         }
+
         if(level.getBlockState(pos.above()).is(Dokipa.Dokipa_Door.get())) {
             level.setBlock(pos.above(), Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
         }
@@ -108,6 +115,14 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
         return true;
     }
 
+    public static BlockPos getLowerPos(BlockState state, BlockPos pos) {
+        return state.getValue(HALF) == DoubleBlockHalf.LOWER ? pos : pos.below();
+    }
+
+    public static BlockPos getBlockEntityPos(BlockState state, BlockPos pos) {
+        return getLowerPos(state, pos);
+    }
+
     public static EventResult interact(Player player, InteractionHand hand, BlockPos pos, Direction face) {
         Level level = player.level();
         BlockState state = level.getBlockState(pos);
@@ -117,15 +132,14 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
         boolean interact = false;
 
         // todo check if interacted with from the correct side (cannot open the door from it's back)
+        Dokipa.LOG.info("Door facing = " + state.getValue(FACING) + ", face = " + face);
 
         if(!level.isClientSide()) {
             Dokipa.logWithLevel(level, "Door Block", "Right click on Dokipa's door");
-            BlockPos blockEntityPos = state.getValue(HALF) == DoubleBlockHalf.LOWER ? pos : pos.below();
-            if(level.getBlockEntity(blockEntityPos) instanceof DokipaDoorBlockEntity dokipaDoor) {
+            if(level.getBlockEntity(getBlockEntityPos(state, pos)) instanceof DokipaDoorBlockEntity dokipaDoor) {
                 if(!dokipaDoor.hasOwner()) {
                     Dokipa.logWithLevel(level, "Door Block", "The door does not have an owner");
                     if(dokipaDoor.trySetOwner(player)) {
-                        // the player is now a dokipa
                         // todo replace this message with a sound
                         player.displayClientMessage(Component.literal("You are now a Dokipa"), true);
                     }
@@ -135,97 +149,92 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
                 }
             }
         }
+
         if(interact) {
             Dokipa.logWithLevel(level, "Door Block", "Opening/closing door");
-            boolean newOpen = !state.getValue(OPEN);
-            BlockPos lowerPos = state.getValue(HALF) == DoubleBlockHalf.LOWER ? pos : pos.below();
-            setOpen((ServerLevel) level, lowerPos, newOpen);
+            openOnBothSides((ServerLevel) level, getLowerPos(state, pos), !state.getValue(OPEN));
             return EventResult.interruptTrue();
         }
+
         return EventResult.interruptFalse();
     }
 
-    public static void setOpen(ServerLevel level, BlockPos lowerPos, boolean open) {
-        if(level.getBlockEntity(lowerPos) instanceof DokipaDoorBlockEntity dokipaDoor) {
+    private static void setOpen(ServerLevel level, BlockPos lowerPos, boolean open) {
+        BlockState door = level.getBlockState(lowerPos);
+        level.setBlockAndUpdate(lowerPos, door.setValue(OPEN, open));
+        door = level.getBlockState(lowerPos.above());
+        level.setBlockAndUpdate(lowerPos.above(), door.setValue(OPEN, open));
+        level.playSound(null, lowerPos, open ? SoundEvents.WOODEN_DOOR_OPEN : SoundEvents.WOODEN_DOOR_CLOSE, SoundSource.BLOCKS, 1.0f, level.getRandom().nextFloat() * 0.1f + 0.9f);
+    }
+
+    public static void openOnBothSides(ServerLevel level, BlockPos lowerPos, boolean open) {
+        if (level.getBlockEntity(lowerPos) instanceof DokipaDoorBlockEntity dokipaDoor) {
             UUID doorUUID = dokipaDoor.getDoorUUID();
             MinecraftServer server = level.getServer();
-            DokipaDataManager dataManager = DokipaDataManager.getInstance(server);
+            DokipaSavedData savedData = Dokipa.savedData(server);
+            DoorInfo doorInfo = savedData.doorInfo(doorUUID);
 
-            ServerLevel otherside = null;
-            BlockPos othersideLowerPos = null;
-            if(level.dimension().equals(Dokipa.Dimension)) {
-                otherside = dataManager.getDoorDimension(doorUUID, server);
-                othersideLowerPos = dataManager.getDoorPos(doorUUID);
+            LocalizedBlockPos placedPos = doorInfo.placedPos();
+            if (placedPos != null) placedPos.executeAt(server, (l, p) -> {
+                setOpen((ServerLevel) l, p, open);
+            });
+
+            LocalizedBlockPos posInRoom = doorInfo.localizedPosInRoom(server);
+            if (posInRoom != null) posInRoom.executeAt(server, (l, p) -> {
+                setOpen((ServerLevel) l, p, open);
+            });
+        }
+    }
+
+    public static void teleport(BlockState state, ServerLevel level, BlockPos pos, Entity entity) {
+        if(level.getBlockEntity(getBlockEntityPos(state, pos)) instanceof DokipaDoorBlockEntity dokipaDoor) {
+            MinecraftServer server = level.getServer();
+            UUID doorUUID = dokipaDoor.getDoorUUID();
+            DokipaSavedData savedData = Dokipa.savedData(server);
+            DoorInfo doorInfo = savedData.doorInfo(doorUUID);
+
+            LocalizedBlockPos destination = null;
+
+            // if destination is doors level and the room does not exist, generate the room
+            if(!level.dimension().equals(Dokipa.Dimension)) {
+                if(!doorInfo.isRoomGenerated()) {
+                    ServerLevel doorsLevel = server.getLevel(Dokipa.Dimension);
+                    if(doorsLevel != null) {
+                        BlockPos genPos = RoomGenerator.getPosForRoom(savedData.nextRoomNumber());
+                        BlockPos doorPos = RoomGenerator.generateRoom(doorsLevel, genPos, doorUUID);
+                        if(doorPos != RoomGenerator.Null_Door_Pos) {
+                            doorInfo.setPosInRoom(doorPos);
+                            savedData.setDirty();
+                        }
+                    }
+                }
+                destination = doorInfo.localizedPosInRoom(server);
             } else {
-                otherside = server.getLevel(Dokipa.Dimension);
-                othersideLowerPos = dataManager.getRoomPos(doorUUID);
+                destination = doorInfo.placedPos();
             }
 
-            BlockState door = level.getBlockState(lowerPos);
-            level.setBlockAndUpdate(lowerPos, door.setValue(OPEN, open));
-            door = level.getBlockState(lowerPos.above());
-            level.setBlockAndUpdate(lowerPos.above(), door.setValue(OPEN, open));
-            level.playSound(null, lowerPos, open ? SoundEvents.WOODEN_DOOR_OPEN : SoundEvents.WOODEN_DOOR_CLOSE, SoundSource.BLOCKS, 1.0f, level.getRandom().nextFloat() * 0.1f + 0.9f);
+            // tp to destination
+            if(destination != null) {
+                Level outLevel = destination.getDimension(server);
+                BlockPos outPos = destination.getPos();
 
-            if(otherside != null && othersideLowerPos != null) {
-                door = otherside.getBlockState(othersideLowerPos);
-                otherside.setBlockAndUpdate(othersideLowerPos, door.setValue(OPEN, open));
-                door = otherside.getBlockState(othersideLowerPos.above());
-                otherside.setBlockAndUpdate(othersideLowerPos.above(), door.setValue(OPEN, open));
-                otherside.playSound(null, othersideLowerPos, open ? SoundEvents.WOODEN_DOOR_OPEN : SoundEvents.WOODEN_DOOR_CLOSE, SoundSource.BLOCKS, 1.0f, level.getRandom().nextFloat() * 0.1f + 0.9f);
+                BlockState outState = outLevel.getBlockState(outPos);
+                Direction outFacing = Direction.EAST;
+                if(outState.is(Dokipa.Dokipa_Door.get())) outFacing = outState.getValue(FACING);
+
+                outPos = outPos.relative(outFacing, 1);
+                entity.teleportTo((ServerLevel) outLevel, outPos.getX() + 0.5, outPos.getY(), outPos.getZ() + 0.5, Set.of(), outFacing.toYRot(), 0);
             }
+
+            // todo else play a sound ?
         }
     }
 
     @Override
-    public void entityInside(BlockState blockState, Level level, BlockPos blockPos, Entity entity) {
-        super.entityInside(blockState, level, blockPos, entity);
-
-        if(!level.isClientSide() && blockState.getValue(OPEN).booleanValue()) {
-            // todo (optional) check if really inside the door
-            if(entity.canChangeDimensions()) {
-                BlockPos blockEntityPos = blockState.getValue(HALF) == DoubleBlockHalf.LOWER ? blockPos : blockPos.below();
-                if(level.getBlockEntity(blockEntityPos) instanceof DokipaDoorBlockEntity dokipaDoor) {
-                    UUID doorUUID = dokipaDoor.getDoorUUID();
-                    DokipaDataManager dataManager = DokipaDataManager.getInstance(level.getServer());
-
-                    if (level.dimension().equals(Dokipa.Dimension)) {
-                        BlockPos outside = dataManager.getDoorPos(doorUUID);
-                        ServerLevel otherside = dataManager.getDoorDimension(doorUUID, level.getServer());
-                        if(otherside != null) {
-                            BlockState state = otherside.getBlockState(outside);
-
-                            Direction facing = Direction.EAST;
-                            if (state.is(this)) facing = state.getValue(FACING);
-
-                            BlockPos tp = outside.relative(facing, 1);
-                            entity.teleportTo(otherside, tp.getX() + 0.5, tp.getY(), tp.getZ() + 0.5, Set.of(), facing.toYRot(), 0);
-                        }
-                    } else {
-                        ServerLevel doorsLevel = level.getServer().getLevel(Dokipa.Dimension);
-                        if(doorsLevel != null) {
-                            BlockPos doorPos = null;
-
-                            // generate the room if needed
-                            if(!dataManager.isRoomGenerated(doorUUID)) {
-                                BlockPos generate = RoomGenerator.getPosForRoom(dataManager.getNextRoomNumber());
-                                doorPos = RoomGenerator.generateRoom(doorsLevel, generate, doorUUID);
-                                if(doorPos != RoomGenerator.Null_Door_Pos) dataManager.setRoomPos(doorUUID, doorPos);
-                            } else {
-                                doorPos = dataManager.getRoomPos(doorUUID);
-                            }
-
-                            // we cannot use entity.changeDimension(doorsLevel) here
-                            // because changeDimension tries to find a portal, a new entity position, etc.
-                            // which results in nothing on the other side (F3 shows "waiting for chunk...")
-                            if(doorPos != null && doorPos != RoomGenerator.Null_Door_Pos) {
-                                entity.teleportTo(doorsLevel, doorPos.getX() + 0.5, doorPos.getY(), doorPos.getZ() + 2, Set.of(), 0, 0);
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    public void entityInside(BlockState state, Level level, BlockPos pos, Entity entity) {
+        super.entityInside(state, level, pos, entity);
+        boolean tp = !level.isClientSide() && state.getValue(OPEN).booleanValue() && entity.canChangeDimensions();
+        if(tp) teleport(state, (ServerLevel) level, pos, entity);
     }
 
     @Nullable

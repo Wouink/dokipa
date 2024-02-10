@@ -6,9 +6,11 @@ import dev.architectury.networking.simple.SimpleNetworkManager;
 import dev.architectury.registry.registries.DeferredRegister;
 import dev.architectury.registry.registries.RegistrySupplier;
 import io.github.wouink.dokipa.network.C2S_SummonDoorMessage;
+import io.github.wouink.dokipa.server.DokipaSavedData;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
@@ -26,6 +28,7 @@ public class Dokipa {
 
     public static final ResourceLocation Dimension_Id = new ResourceLocation(MODID, "doors");
     public static final ResourceKey<Level> Dimension = ResourceKey.create(Registries.DIMENSION, Dimension_Id);
+    private static DokipaSavedData savedData;
 
     public static final SimpleNetworkManager NET = SimpleNetworkManager.create(MODID);
     public static final MessageType C2S_DOOR_SUMMON_MSG = NET.registerC2S("c2s_door_summon_msg", C2S_SummonDoorMessage::new);
@@ -62,5 +65,10 @@ public class Dokipa {
         String side = level.isClientSide() ? "client" : "server";
         String dimension = level.dimension().location().toString();
         LOG.info("[" + source + " / " + dimension + " / " + side + "] " + message);
+    }
+
+    public static DokipaSavedData savedData(MinecraftServer server) {
+        if(savedData == null) savedData = DokipaSavedData.init(server);
+        return savedData;
     }
 }
