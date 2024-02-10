@@ -65,4 +65,9 @@ public class LocalizedBlockPos {
         BlockPos pos = getPos();
         if(level != null && pos != null) function.accept(level, pos);
     }
+
+    @Override
+    public String toString() {
+        return this.pos.toString() + " in " + this.dimension.toString();
+    }
 }

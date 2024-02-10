@@ -91,7 +91,7 @@ public class DoorInfo {
     }
 
     public boolean isOwner(Entity entity) {
-        return hasOwner() && ownerUUID.equals(entity.getUUID());
+        return hasOwner() && getOwner().equals(entity.getUUID());
     }
 
     public boolean isRoomGenerated() {

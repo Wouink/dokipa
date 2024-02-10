@@ -49,7 +49,7 @@ public class DokipaSavedData extends SavedData {
         while(doorsTag.contains("Door" + doorIndex)) {
             CompoundTag doorTag = doorsTag.getCompound("Door" + doorIndex);
             UUID doorUUID = doorTag.getUUID("UUID");
-            savedData.doors.put(doorUUID, new DoorInfo(doorsTag, doorUUID));
+            savedData.doors.put(doorUUID, new DoorInfo(doorTag, doorUUID));
             doorIndex++;
         }
 
@@ -79,6 +79,7 @@ public class DokipaSavedData extends SavedData {
     }
 
     public DoorInfo doorForEntity(Entity entity) {
+        Dokipa.LOG.info("Trying to find a door for entity " + entity.getUUID());
         DoorInfo foundDoor = null;
         Iterator<DoorInfo> it = doors.values().iterator();
         while(foundDoor == null && it.hasNext()) {

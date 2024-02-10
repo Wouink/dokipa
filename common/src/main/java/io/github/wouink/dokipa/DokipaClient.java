@@ -10,6 +10,7 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
@@ -37,6 +38,7 @@ public class DokipaClient {
         ClientTickEvent.CLIENT_POST.register(minecraft -> {
             if(Door_Summon.isDown()) {
                 Player player = minecraft.player;
+                Level level = player.level();
                 BlockPos lookingAt = null;
 
                 // copied from net.minecraft.client.gui.components.DebugScreenOverlay
@@ -49,11 +51,11 @@ public class DokipaClient {
                     Dokipa.LOG.error("Client is looking at special Unsummon_Pos " + C2S_SummonDoorMessage.Unsummon_Pos);
                 } else if(lookingAt == null) {
                     // the player is not looking at any block -> remove the door
-                    new C2S_SummonDoorMessage(C2S_SummonDoorMessage.Unsummon_Pos, Direction.NORTH).sendToServer();
+                    new C2S_SummonDoorMessage(level, C2S_SummonDoorMessage.Unsummon_Pos, Direction.NORTH).sendToServer();
                 } else {
                     // the player is looking at a block -> summon the door
                     Direction facing = player.getDirection().getOpposite();
-                    new C2S_SummonDoorMessage(lookingAt, facing).sendToServer();
+                    new C2S_SummonDoorMessage(level, lookingAt.above(), facing).sendToServer();
                 }
             }
         });

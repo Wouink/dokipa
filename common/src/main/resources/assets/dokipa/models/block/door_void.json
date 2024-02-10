@@ -2,7 +2,7 @@
   "credit": "Made with Blockbench",
   "ambientocclusion": false,
   "textures": {
-    "1": "minecraft:block/black_concrete"
+    "1": "dokipa:block/room_separator"
   },
   "elements": [
     {
