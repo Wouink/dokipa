@@ -1,5 +1,6 @@
-package io.github.wouink.dokipa.server;
+package io.github.wouink.dokipa;
 
+import io.github.wouink.dokipa.server.LocalizedBlockPos;
 import net.minecraft.nbt.CompoundTag;
 
 public class MemorizedLocation {
@@ -26,5 +27,18 @@ public class MemorizedLocation {
         this.localizedBlockPos.save(posTag);
         tag.put("Pos", posTag);
         return tag;
+    }
+
+    public LocalizedBlockPos getLoc() {
+        return this.localizedBlockPos;
+    }
+
+    public String getDescription() {
+        return this.description;
+    }
+
+    @Override
+    public String toString() {
+        return "MemorizedLocation \"" + description + "\" " + localizedBlockPos;
     }
 }

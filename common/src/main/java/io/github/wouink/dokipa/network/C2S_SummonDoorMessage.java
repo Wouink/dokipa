@@ -31,6 +31,12 @@ public class C2S_SummonDoorMessage extends BaseC2SMessage {
         this.facing = _facing;
     }
 
+    public C2S_SummonDoorMessage(String _summonLevelId, BlockPos _summonPos, Direction _facing) {
+        this.summonLevelId = _summonLevelId;
+        this.summonPos = _summonPos;
+        this.facing = _facing;
+    }
+
     public C2S_SummonDoorMessage(FriendlyByteBuf buf) {
         //Dokipa.LOG.info("Reading buffer...");
         int levelIdStringLength = buf.readInt();

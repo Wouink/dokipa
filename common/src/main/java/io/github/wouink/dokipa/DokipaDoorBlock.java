@@ -1,13 +1,18 @@
 package io.github.wouink.dokipa;
 
 import dev.architectury.event.EventResult;
-import io.github.wouink.dokipa.server.*;
+import io.github.wouink.dokipa.server.DokipaSavedData;
+import io.github.wouink.dokipa.server.DoorInfo;
+import io.github.wouink.dokipa.server.LocalizedBlockPos;
+import io.github.wouink.dokipa.server.RoomGenerator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
@@ -71,11 +76,7 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
 
             // particles and sound
             if(level instanceof ServerLevel serverLevel) {
-                double x = pos.getX() + 0.5;
-                double y = pos.getY() + 1;
-                double z = pos.getZ() + 0.5;
-                serverLevel.sendParticles(ParticleTypes.DRAGON_BREATH, x, y, z, 10, 0, 0, 0, 1);
-                serverLevel.playSound(null, pos, SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 1.0f, 1.0f);
+                particlesAndSound(serverLevel, pos, ParticleTypes.DRAGON_BREATH, SoundEvents.ENCHANTMENT_TABLE_USE);
             }
 
             return true;
@@ -105,14 +106,18 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
 
         // particles and sound
         if(level instanceof ServerLevel serverLevel) {
-            double x = pos.getX() + 0.5;
-            double y = pos.getY() + 1;
-            double z = pos.getZ() + 0.5;
-            serverLevel.sendParticles(ParticleTypes.FLAME, x, y, z, 10, 0, 0, 0, 1);
-            serverLevel.playSound(null, pos, SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 1.0f, 1.0f);
+            particlesAndSound(serverLevel, pos, ParticleTypes.FLAME, SoundEvents.FIRECHARGE_USE);
         }
 
         return true;
+    }
+
+    private static void particlesAndSound(ServerLevel level, BlockPos pos, ParticleOptions particles, SoundEvent sound) {
+        double x = pos.getX() + 0.5;
+        double y = pos.getY() + 1;
+        double z = pos.getZ() + 0.5;
+        level.sendParticles(particles, x, y, z, 10, 0, 0, 0, 1);
+        level.playSound(null, pos, sound, SoundSource.PLAYERS, 1.0f, 1.0f);
     }
 
     public static BlockPos getLowerPos(BlockState state, BlockPos pos) {

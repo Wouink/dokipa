@@ -1,6 +1,7 @@
 package io.github.wouink.dokipa;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import dev.architectury.event.events.client.ClientPlayerEvent;
 import dev.architectury.event.events.client.ClientTickEvent;
 import dev.architectury.platform.Platform;
 import dev.architectury.registry.client.keymappings.KeyMappingRegistry;
@@ -14,7 +15,11 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class DokipaClient {
+    private static List<MemorizedLocation> memorizedLocationsCache = new ArrayList<>();
 
     public static final KeyMapping Door_Summon = new KeyMapping(
             "key.dokipa.summon_door",
@@ -29,12 +34,10 @@ public class DokipaClient {
             return;
         }
 
-        // todo render like an end gateway (but it crashes)
-        //RenderTypeRegistry.register(RenderType.endGateway(), Dokipa.Room_Separator.get());
-
         KeyMappingRegistry.register(Door_Summon);
         // todo this checks if the key is down
         // but it it not called only once when the player presses the key
+        // see ClientRawInputEvent.KEY_PRESSED which has a Minecraft object in its parameters
         ClientTickEvent.CLIENT_POST.register(minecraft -> {
             if(Door_Summon.isDown()) {
                 Player player = minecraft.player;
@@ -59,5 +62,26 @@ public class DokipaClient {
                 }
             }
         });
+
+        // called when a client leaves a world
+        // ok on integrated server and on dedicated server
+        ClientPlayerEvent.CLIENT_PLAYER_QUIT.register(player -> {
+            Dokipa.LOG.info("Client/Player Quit");
+            DokipaClient.clearCachedLocations();
+        });
+    }
+
+    public static void cacheLocation(MemorizedLocation loc) {
+        Dokipa.LOG.info("Caching location " + loc);
+        memorizedLocationsCache.add(loc);
+    }
+
+    public List<MemorizedLocation> getCachedLocations() {
+        return memorizedLocationsCache;
+    }
+
+    public static void clearCachedLocations() {
+        Dokipa.LOG.info("Clearing cached locations");
+        memorizedLocationsCache.clear();
     }
 }
