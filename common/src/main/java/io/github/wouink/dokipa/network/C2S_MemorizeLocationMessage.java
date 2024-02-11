@@ -62,26 +62,26 @@ public class C2S_MemorizeLocationMessage extends BaseC2SMessage {
     public void handle(NetworkManager.PacketContext context) {
         context.queue(() -> {
             Player player = context.getPlayer();
-            Level playerLevel = player.level();
-            UUID doorUUID = null;
+            MinecraftServer server = player.getServer();
+            DokipaSavedData savedData = Dokipa.savedData(server);
 
-            // we are always in the player's level. no need to find the level on the server
-            BlockPos pos = loc.getLoc().getPos();
+            if(control == Type.MEMORIZE) {
+                Level playerLevel = player.level();
+                UUID doorUUID = null;
 
-            BlockState state = playerLevel.getBlockState(pos);
-            if(state.is(Dokipa.Dokipa_Door.get())) {
-                if(playerLevel.getBlockEntity(DokipaDoorBlock.getBlockEntityPos(state, pos)) instanceof DokipaDoorBlockEntity dokipaDoor) {
-                    doorUUID = dokipaDoor.getDoorUUID();
+                // we are always in the player's level. no need to find the level on the server
+                BlockPos pos = loc.getLoc().getPos();
+
+                BlockState state = playerLevel.getBlockState(pos);
+                if(state.is(Dokipa.Dokipa_Door.get())) {
+                    if(playerLevel.getBlockEntity(DokipaDoorBlock.getBlockEntityPos(state, pos)) instanceof DokipaDoorBlockEntity dokipaDoor) {
+                        doorUUID = dokipaDoor.getDoorUUID();
+                    }
                 }
-            }
 
-            if(doorUUID != null) {
-                MinecraftServer server = player.getServer();
-                DokipaSavedData savedData = Dokipa.savedData(server);
-                DoorInfo doorInfo = savedData.doorInfo(doorUUID);
-
-                if(doorInfo != null && doorInfo.isOwner(player)) {
-                    if (control == Type.MEMORIZE) {
+                if(doorUUID != null) {
+                    DoorInfo doorInfo = savedData.doorInfo(doorUUID);
+                    if(doorInfo != null && doorInfo.isOwner(player)) {
                         LocalizedBlockPos doorPos = doorInfo.placedPos();
                         if(doorPos != null) {
                             savedData.memorizedLocations(player).add(loc);
@@ -89,12 +89,18 @@ public class C2S_MemorizeLocationMessage extends BaseC2SMessage {
                             new S2C_SendMemorizedLocationMessage(loc).sendTo((ServerPlayer) player);
                         }
                     }
+
+                    // todo inform the player it cannot memorize the location when it does not own the door
                 }
-
-                // todo inform the player it cannot memorize the location when it does not own the door
+            } else if(control == Type.FORGET) {
+                if(savedData.memorizedLocations(player).remove(loc)) {
+                    Dokipa.LOG.info("Removed MemorizedLocation \"" + loc.getDescription() + "\" of player " + player.getStringUUID());
+                    // the client cleared its cache when it sent the message
+                    savedData.sendMemorizedLocations((ServerPlayer) player);
+                } else {
+                    Dokipa.LOG.error("Did not remove MemorizedLocation \"" + loc.getDescription() + "\"");
+                }
             }
-
-            // todo implement FORGET control type
         });
     }
 }

@@ -70,4 +70,12 @@ public class LocalizedBlockPos {
     public String toString() {
         return this.pos.toString() + " in " + this.dimension.toString();
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(obj instanceof LocalizedBlockPos lpos) {
+            return lpos.pos.equals(pos) && lpos.dimension.equals(dimension);
+        }
+        return false;
+    }
 }

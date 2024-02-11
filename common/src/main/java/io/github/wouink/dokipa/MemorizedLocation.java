@@ -52,4 +52,13 @@ public class MemorizedLocation {
     public String toString() {
         return "MemorizedLocation \"" + description + "\" " + localizedBlockPos;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(obj instanceof MemorizedLocation memLoc) {
+            // todo compare facing ?
+            return memLoc.localizedBlockPos.equals(localizedBlockPos) && memLoc.description.equals(description);
+        }
+        return false;
+    }
 }

@@ -80,10 +80,7 @@ public class Dokipa {
             if(!player.level().isClientSide()) {
                 Dokipa.LOG.info("Player " + player.getUUID() + " joined server -> sending its MemorizedLocations...");
                 DokipaSavedData sd = Dokipa.savedData(player.getServer());
-                sd.memorizedLocations(player).forEach(memorizedLocation -> {
-                    Dokipa.LOG.info("Sending MemorizedLocation \"" + memorizedLocation.getDescription() + "\" to player");
-                    new S2C_SendMemorizedLocationMessage(memorizedLocation).sendTo(player);
-                });
+                sd.sendMemorizedLocations(player);
             }
         });
     }

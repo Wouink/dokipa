@@ -1,6 +1,7 @@
 package io.github.wouink.dokipa.client;
 
 import io.github.wouink.dokipa.DokipaClient;
+import io.github.wouink.dokipa.network.C2S_MemorizeLocationMessage;
 import io.github.wouink.dokipa.network.C2S_SummonDoorMessage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -32,15 +33,23 @@ public class PositionDoorScreen extends Screen {
         // create the menu
         // with help from net.minecraft.client.gui.screens.PauseScreen
 
+        // todo add a title "Position your door"
+        // todo add a text "Shift+Click to forget a location"
+
         GridLayout gridLayout = new GridLayout();
         gridLayout.defaultCellSetting().padding(4);
         // 4 buttons (columns) per row
         GridLayout.RowHelper rowHelper = gridLayout.createRowHelper(4);
 
-        // todo if shift key is down, forget the location
         DokipaClient.getCachedLocations().forEach(memorizedLocation -> {
             rowHelper.addChild(Button.builder(Component.literal(memorizedLocation.getDescription()), button -> {
-                new C2S_SummonDoorMessage(memorizedLocation.getLoc(), memorizedLocation.getFacing()).sendToServer();
+                if(hasShiftDown()) {
+                    new C2S_MemorizeLocationMessage(C2S_MemorizeLocationMessage.Type.FORGET, memorizedLocation).sendToServer();
+                    // the server will send back all known locations to the client
+                    DokipaClient.clearCachedLocations();
+                } else {
+                    new C2S_SummonDoorMessage(memorizedLocation.getLoc(), memorizedLocation.getFacing()).sendToServer();
+                }
                 Minecraft.getInstance().setScreen(null);
             }).build());
         });

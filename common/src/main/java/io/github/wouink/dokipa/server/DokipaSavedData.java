@@ -2,10 +2,12 @@ package io.github.wouink.dokipa.server;
 
 import io.github.wouink.dokipa.Dokipa;
 import io.github.wouink.dokipa.MemorizedLocation;
+import io.github.wouink.dokipa.network.S2C_SendMemorizedLocationMessage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.saveddata.SavedData;
 
@@ -122,6 +124,13 @@ public class DokipaSavedData extends SavedData {
             locations.put(entity.getUUID(), new ArrayList<>());
         }
         return locations.get(entity.getUUID());
+    }
+
+    public void sendMemorizedLocations(ServerPlayer player) {
+        memorizedLocations(player).forEach(memorizedLocation -> {
+            Dokipa.LOG.info("Sending MemorizedLocation \"" + memorizedLocation.getDescription() + "\" to player");
+            new S2C_SendMemorizedLocationMessage(memorizedLocation).sendTo(player);
+        });
     }
 
     public int nextRoomNumber() {
