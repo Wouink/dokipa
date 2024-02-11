@@ -2,6 +2,7 @@ package io.github.wouink.dokipa.client;
 
 import io.github.wouink.dokipa.DokipaClient;
 import io.github.wouink.dokipa.network.C2S_SummonDoorMessage;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.layouts.FrameLayout;
@@ -36,9 +37,11 @@ public class PositionDoorScreen extends Screen {
         // 4 buttons (columns) per row
         GridLayout.RowHelper rowHelper = gridLayout.createRowHelper(4);
 
+        // todo if shift key is down, forget the location
         DokipaClient.getCachedLocations().forEach(memorizedLocation -> {
             rowHelper.addChild(Button.builder(Component.literal(memorizedLocation.getDescription()), button -> {
                 new C2S_SummonDoorMessage(memorizedLocation.getLoc(), memorizedLocation.getFacing()).sendToServer();
+                Minecraft.getInstance().setScreen(null);
             }).build());
         });
 

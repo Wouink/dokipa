@@ -1,5 +1,6 @@
 package io.github.wouink.dokipa.client;
 
+import io.github.wouink.dokipa.DokipaClient;
 import io.github.wouink.dokipa.MemorizedLocation;
 import io.github.wouink.dokipa.network.C2S_MemorizeLocationMessage;
 import io.github.wouink.dokipa.server.LocalizedBlockPos;
@@ -23,6 +24,7 @@ public class MemorizeLocationScreen extends Screen {
     private Direction facing;
 
     private EditBox nameField;
+    private Button validateButton;
 
     protected MemorizeLocationScreen(Component component) {
         super(component);
@@ -46,7 +48,7 @@ public class MemorizeLocationScreen extends Screen {
         // todo create a default name related to the biome, the height, the coordinates...
         nameField.setValue("Northern Plains");
 
-        addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> {
+        validateButton = addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> {
             String description = nameField.getValue();
             if(!description.isEmpty()) {
                 MemorizedLocation loc = new MemorizedLocation(description, pos, facing);
@@ -54,6 +56,20 @@ public class MemorizeLocationScreen extends Screen {
                 Minecraft.getInstance().setScreen(null);
             }
         }).pos(10, 20).build());
+
+        // enable/disable "Done" button to ensure the description is unique
+        nameField.setResponder(value -> {
+            boolean canSave = !value.isEmpty();
+            if(canSave) {
+                for (MemorizedLocation loc : DokipaClient.getCachedLocations()) {
+                    if (value.equals(loc.getDescription())) {
+                        canSave = false;
+                        break;
+                    }
+                }
+            }
+            validateButton.active = canSave;
+        });
     }
 
     @Override
