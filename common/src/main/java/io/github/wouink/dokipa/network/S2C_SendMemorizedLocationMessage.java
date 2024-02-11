@@ -13,18 +13,18 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 
-public class S2C_SendMemoryMessage extends BaseS2CMessage {
+public class S2C_SendMemorizedLocationMessage extends BaseS2CMessage {
     private String description;
     private String levelId;
     private BlockPos pos;
 
-    public S2C_SendMemoryMessage(MemorizedLocation memLoc) {
+    public S2C_SendMemorizedLocationMessage(MemorizedLocation memLoc) {
         this.description = memLoc.getDescription();
         this.levelId = memLoc.getLoc().getDimension().toString();
         this.pos = memLoc.getLoc().getPos();
     }
 
-    public S2C_SendMemoryMessage(FriendlyByteBuf buf) {
+    public S2C_SendMemorizedLocationMessage(FriendlyByteBuf buf) {
         int descriptionLength = buf.readInt();
         this.description = buf.readCharSequence(descriptionLength, Charsets.UTF_8).toString();
         int levelIdLength = buf.readInt();

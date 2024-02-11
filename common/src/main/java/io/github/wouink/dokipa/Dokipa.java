@@ -6,11 +6,10 @@ import dev.architectury.networking.simple.MessageType;
 import dev.architectury.networking.simple.SimpleNetworkManager;
 import dev.architectury.registry.registries.DeferredRegister;
 import dev.architectury.registry.registries.RegistrySupplier;
+import io.github.wouink.dokipa.network.C2S_MemorizeLocationMessage;
 import io.github.wouink.dokipa.network.C2S_SummonDoorMessage;
-import io.github.wouink.dokipa.network.S2C_SendMemoryMessage;
+import io.github.wouink.dokipa.network.S2C_SendMemorizedLocationMessage;
 import io.github.wouink.dokipa.server.DokipaSavedData;
-import io.github.wouink.dokipa.server.LocalizedBlockPos;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -36,7 +35,8 @@ public class Dokipa {
 
     public static final SimpleNetworkManager NET = SimpleNetworkManager.create(MODID);
     public static final MessageType C2S_DOOR_SUMMON_MSG = NET.registerC2S("c2s_door_summon_msg", C2S_SummonDoorMessage::new);
-    public static final MessageType S2C_SEND_MEMLOC_MSG = NET.registerS2C("s2c_send_memloc_msg", S2C_SendMemoryMessage::new);
+    public static final MessageType S2C_SEND_MEMLOC_MSG = NET.registerS2C("s2c_send_memloc_msg", S2C_SendMemorizedLocationMessage::new);
+    public static final MessageType C2S_MEMORIZE_MSG = NET.registerC2S("c2s_memorize_msg", C2S_MemorizeLocationMessage::new);
 
     public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(MODID, Registries.BLOCK);
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(MODID, Registries.ITEM);
@@ -76,13 +76,14 @@ public class Dokipa {
 
         // Instead, perform a check of the level side to determine if messages should be sent.
         PlayerEvent.PLAYER_JOIN.register(player -> {
+            // level is actually never client-side here
             if(!player.level().isClientSide()) {
                 Dokipa.LOG.info("Player " + player.getUUID() + " joined server -> sending its MemorizedLocations...");
-                // just a test for now
-                ResourceLocation overworld = new ResourceLocation("minecraft:overworld");
-                LocalizedBlockPos posTest = new LocalizedBlockPos(new BlockPos(0, 0, 0), overworld);
-                MemorizedLocation loc = new MemorizedLocation("ZeroZeroOverworld", posTest);
-                new S2C_SendMemoryMessage(loc).sendTo(player);
+                DokipaSavedData sd = Dokipa.savedData(player.getServer());
+                sd.memorizedLocations(player).forEach(memorizedLocation -> {
+                    Dokipa.LOG.info("Sending MemorizedLocation \"" + memorizedLocation.getDescription() + "\" to player");
+                    new S2C_SendMemorizedLocationMessage(memorizedLocation).sendTo(player);
+                });
             }
         });
     }
