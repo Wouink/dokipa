@@ -34,6 +34,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DokipaDoorBlock extends Block implements EntityBlock {
     public static DirectionProperty FACING = DoorBlock.FACING;
@@ -61,13 +62,22 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
         if(canSummon) {
             Dokipa.logWithLevel(level, "Door Block (summon)", "Adding door " + doorUUID + " at " + pos + ", Facing = " + facing);
 
-            BlockState base = Dokipa.Dokipa_Door.get().defaultBlockState().setValue(FACING, facing).setValue(OPEN, false);
-            level.setBlock(pos, base.setValue(HALF, DoubleBlockHalf.LOWER), Block.UPDATE_ALL);
-            level.setBlock(above, base.setValue(HALF, DoubleBlockHalf.UPPER), Block.UPDATE_ALL);
-
-            DokipaSavedData savedData = Dokipa.savedData(level.getServer());
+            MinecraftServer server = level.getServer();
+            DokipaSavedData savedData = Dokipa.savedData(server);
             savedData.doorInfo(doorUUID).setPlacedPos(new LocalizedBlockPos(pos, level));
             savedData.setDirty();
+
+            AtomicBoolean open = new AtomicBoolean(false);
+            savedData.doorInfo(doorUUID).localizedPosInRoom(server).executeAt(server, (lvl, blockPos) -> {
+                BlockState state = lvl.getBlockState(blockPos);
+                if(state.is(Dokipa.Dokipa_Door.get())) {
+                    open.set(state.getValue(OPEN).booleanValue());
+                }
+            });
+
+            BlockState base = Dokipa.Dokipa_Door.get().defaultBlockState().setValue(FACING, facing).setValue(OPEN, open.get());
+            level.setBlock(pos, base.setValue(HALF, DoubleBlockHalf.LOWER), Block.UPDATE_ALL);
+            level.setBlock(above, base.setValue(HALF, DoubleBlockHalf.UPPER), Block.UPDATE_ALL);
 
             // set door uuid in BlockEntity
             if(level.getBlockEntity(pos) instanceof DokipaDoorBlockEntity dokipaDoor) {
