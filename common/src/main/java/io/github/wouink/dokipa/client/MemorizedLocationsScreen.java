@@ -7,7 +7,6 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.layouts.FrameLayout;
 import net.minecraft.client.gui.layouts.GridLayout;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 
 /*
@@ -39,7 +38,7 @@ public class MemorizedLocationsScreen extends Screen {
 
         DokipaClient.getCachedLocations().forEach(memorizedLocation -> {
             rowHelper.addChild(Button.builder(Component.literal(memorizedLocation.getDescription()), button -> {
-                new C2S_SummonDoorMessage(memorizedLocation.getLoc(), Direction.EAST).sendToServer();
+                new C2S_SummonDoorMessage(memorizedLocation.getLoc(), memorizedLocation.getFacing()).sendToServer();
             }).build());
         });
 

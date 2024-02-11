@@ -10,6 +10,7 @@ import io.github.wouink.dokipa.DokipaClient;
 import io.github.wouink.dokipa.MemorizedLocation;
 import io.github.wouink.dokipa.server.LocalizedBlockPos;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 
@@ -17,11 +18,13 @@ public class S2C_SendMemorizedLocationMessage extends BaseS2CMessage {
     private String description;
     private String levelId;
     private BlockPos pos;
+    private Direction facing;
 
     public S2C_SendMemorizedLocationMessage(MemorizedLocation memLoc) {
         this.description = memLoc.getDescription();
         this.levelId = memLoc.getLoc().getDimension().toString();
         this.pos = memLoc.getLoc().getPos();
+        this.facing = memLoc.getFacing();
     }
 
     public S2C_SendMemorizedLocationMessage(FriendlyByteBuf buf) {
@@ -30,6 +33,7 @@ public class S2C_SendMemorizedLocationMessage extends BaseS2CMessage {
         int levelIdLength = buf.readInt();
         this.levelId = buf.readCharSequence(levelIdLength, Charsets.UTF_8).toString();
         this.pos = buf.readBlockPos();
+        this.facing = Direction.values()[buf.readByte()];
     }
 
     @Override
@@ -44,13 +48,14 @@ public class S2C_SendMemorizedLocationMessage extends BaseS2CMessage {
         buf.writeInt(levelId.length());
         buf.writeCharSequence(levelId, Charsets.UTF_8);
         buf.writeBlockPos(pos);
+        buf.writeByte(facing.ordinal());
     }
 
     @Override
     public void handle(NetworkManager.PacketContext context) {
         if(context.getEnvironment() == Env.CLIENT) context.queue(() -> {
             LocalizedBlockPos localizedBlockPos = new LocalizedBlockPos(pos, new ResourceLocation(levelId));
-            MemorizedLocation memLoc = new MemorizedLocation(description, localizedBlockPos);
+            MemorizedLocation memLoc = new MemorizedLocation(description, localizedBlockPos, facing);
             DokipaClient.cacheLocation(memLoc);
         });
     }

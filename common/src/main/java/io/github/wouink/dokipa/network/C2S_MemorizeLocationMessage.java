@@ -87,7 +87,7 @@ public class C2S_MemorizeLocationMessage extends BaseC2SMessage {
                     if (control == Type.MEMORIZE) {
                         LocalizedBlockPos doorPos = doorInfo.placedPos();
                         if(doorPos != null) {
-                            MemorizedLocation loc = new MemorizedLocation(description, doorPos);
+                            MemorizedLocation loc = new MemorizedLocation(description, doorPos, state.getValue(DokipaDoorBlock.FACING));
                             savedData.memorizedLocations(player).add(loc);
                             savedData.setDirty();
                             new S2C_SendMemorizedLocationMessage(loc).sendTo((ServerPlayer) player);
