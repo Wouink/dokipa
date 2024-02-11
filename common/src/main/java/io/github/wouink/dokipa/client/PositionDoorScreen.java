@@ -15,12 +15,12 @@ import net.minecraft.network.chat.Component;
     The list of MemorizedLocations is DokipaClient.memorizedLocations.
     It is populated when the player connects to a server with S2C_SendMemorizedLocationMessages.
  */
-public class MemorizedLocationsScreen extends Screen {
-    protected MemorizedLocationsScreen(Component component) {
+public class PositionDoorScreen extends Screen {
+    protected PositionDoorScreen(Component component) {
         super(component);
     }
 
-    public MemorizedLocationsScreen() {
+    public PositionDoorScreen() {
         super(Component.translatable("dokipa.position_door"));
     }
 

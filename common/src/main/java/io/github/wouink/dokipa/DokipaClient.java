@@ -7,8 +7,8 @@ import dev.architectury.event.events.client.ClientRawInputEvent;
 import dev.architectury.platform.Platform;
 import dev.architectury.registry.client.keymappings.KeyMappingRegistry;
 import dev.architectury.utils.Env;
-import io.github.wouink.dokipa.client.MemorizedLocationsScreen;
-import io.github.wouink.dokipa.network.C2S_MemorizeLocationMessage;
+import io.github.wouink.dokipa.client.MemorizeLocationScreen;
+import io.github.wouink.dokipa.client.PositionDoorScreen;
 import io.github.wouink.dokipa.network.C2S_SummonDoorMessage;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.core.BlockPos;
@@ -75,7 +75,7 @@ public class DokipaClient {
                     // further checks are performed on server
                     // but this first check prevent sending messages if there's no door
                     if (lookingAtState.is(Dokipa.Dokipa_Door.get())) {
-                        new C2S_MemorizeLocationMessage(C2S_MemorizeLocationMessage.Type.MEMORIZE, "test", lookingAt).sendToServer();
+                        minecraft.setScreen(new MemorizeLocationScreen(minecraft.level, lookingAt, lookingAtState.getValue(DokipaDoorBlock.FACING)));
                     }
                 }
 
@@ -106,7 +106,7 @@ public class DokipaClient {
 
                 return EventResult.interruptTrue();
             } else if(Position_Door.isDown()) {
-                minecraft.setScreen(new MemorizedLocationsScreen());
+                minecraft.setScreen(new PositionDoorScreen());
                 return EventResult.interruptTrue();
             }
             return EventResult.pass();

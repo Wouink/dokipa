@@ -1,6 +1,5 @@
 package io.github.wouink.dokipa.network;
 
-import com.google.common.base.Charsets;
 import dev.architectury.networking.NetworkManager;
 import dev.architectury.networking.simple.BaseC2SMessage;
 import dev.architectury.networking.simple.MessageType;
@@ -12,6 +11,7 @@ import io.github.wouink.dokipa.server.DokipaSavedData;
 import io.github.wouink.dokipa.server.DoorInfo;
 import io.github.wouink.dokipa.server.LocalizedBlockPos;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -28,8 +28,7 @@ import java.util.UUID;
     a S2C_SendMemoryMessage to the client.
  */
 public class C2S_MemorizeLocationMessage extends BaseC2SMessage {
-    private String description;
-    private BlockPos targetPos;
+    private MemorizedLocation loc;
     private Type control;
 
     public enum Type {
@@ -37,17 +36,14 @@ public class C2S_MemorizeLocationMessage extends BaseC2SMessage {
         FORGET
     }
 
-    public C2S_MemorizeLocationMessage(Type control, String description, BlockPos targetPos) {
+    public C2S_MemorizeLocationMessage(Type control, MemorizedLocation loc) {
         this.control = control;
-        this.description = description;
-        this.targetPos = targetPos;
+        this.loc = loc;
     }
 
     public C2S_MemorizeLocationMessage(FriendlyByteBuf buf) {
         this.control = Type.values()[buf.readByte()];
-        int descLength = buf.readInt();
-        this.description = buf.readCharSequence(descLength, Charsets.UTF_8).toString();
-        this.targetPos = buf.readBlockPos();
+        this.loc = new MemorizedLocation(buf.readAnySizeNbt());
     }
 
     @Override
@@ -58,9 +54,7 @@ public class C2S_MemorizeLocationMessage extends BaseC2SMessage {
     @Override
     public void write(FriendlyByteBuf buf) {
         buf.writeByte(this.control.ordinal());
-        buf.writeInt(this.description.length());
-        buf.writeCharSequence(this.description, Charsets.UTF_8);
-        buf.writeBlockPos(this.targetPos);
+        buf.writeNbt(this.loc.save(new CompoundTag()));
     }
 
     // C2S Message -> handle on server
@@ -71,9 +65,12 @@ public class C2S_MemorizeLocationMessage extends BaseC2SMessage {
             Level playerLevel = player.level();
             UUID doorUUID = null;
 
-            BlockState state = playerLevel.getBlockState(targetPos);
+            // we are always in the player's level. no need to find the level on the server
+            BlockPos pos = loc.getLoc().getPos();
+
+            BlockState state = playerLevel.getBlockState(pos);
             if(state.is(Dokipa.Dokipa_Door.get())) {
-                if(playerLevel.getBlockEntity(DokipaDoorBlock.getBlockEntityPos(state, targetPos)) instanceof DokipaDoorBlockEntity dokipaDoor) {
+                if(playerLevel.getBlockEntity(DokipaDoorBlock.getBlockEntityPos(state, pos)) instanceof DokipaDoorBlockEntity dokipaDoor) {
                     doorUUID = dokipaDoor.getDoorUUID();
                 }
             }
@@ -87,7 +84,6 @@ public class C2S_MemorizeLocationMessage extends BaseC2SMessage {
                     if (control == Type.MEMORIZE) {
                         LocalizedBlockPos doorPos = doorInfo.placedPos();
                         if(doorPos != null) {
-                            MemorizedLocation loc = new MemorizedLocation(description, doorPos, state.getValue(DokipaDoorBlock.FACING));
                             savedData.memorizedLocations(player).add(loc);
                             savedData.setDirty();
                             new S2C_SendMemorizedLocationMessage(loc).sendTo((ServerPlayer) player);

@@ -52,6 +52,7 @@ public class DokipaDoorBlock extends Block implements EntityBlock {
         builder.add(FACING, HALF, HINGE, OPEN);
     }
 
+    // todo check if the door is opened on the other side
     public static boolean summon(Level level, BlockPos pos, UUID doorUUID, Direction facing) {
         // check if we have room to summon the door
         BlockPos above = pos.above();
