@@ -94,6 +94,8 @@ public class C2S_MemorizeLocationMessage extends BaseC2SMessage {
                         }
                     }
                 }
+
+                // todo inform the player it cannot memorize the location when it does not own the door
             }
 
             // todo implement FORGET control type

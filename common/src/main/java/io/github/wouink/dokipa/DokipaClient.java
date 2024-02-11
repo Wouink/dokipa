@@ -4,10 +4,10 @@ import com.mojang.blaze3d.platform.InputConstants;
 import dev.architectury.event.EventResult;
 import dev.architectury.event.events.client.ClientPlayerEvent;
 import dev.architectury.event.events.client.ClientRawInputEvent;
-import dev.architectury.event.events.client.ClientTickEvent;
 import dev.architectury.platform.Platform;
 import dev.architectury.registry.client.keymappings.KeyMappingRegistry;
 import dev.architectury.utils.Env;
+import io.github.wouink.dokipa.client.MemorizedLocationsScreen;
 import io.github.wouink.dokipa.network.C2S_MemorizeLocationMessage;
 import io.github.wouink.dokipa.network.C2S_SummonDoorMessage;
 import net.minecraft.client.KeyMapping;
@@ -39,6 +39,13 @@ public class DokipaClient {
             "category.dokipa.all_bindings"
     );
 
+    public static final KeyMapping Position_Door = new KeyMapping(
+            "key.dokipa.position_door",
+            InputConstants.Type.KEYSYM,
+            InputConstants.KEY_O,
+            "category.dokipa.all_bindings"
+    );
+
     public static void init() {
         if(Platform.getEnvironment() != Env.CLIENT) {
             Dokipa.LOG.error("Attempt to init Dokipa client on server");
@@ -47,41 +54,7 @@ public class DokipaClient {
 
         KeyMappingRegistry.register(Door_Summon);
         KeyMappingRegistry.register(Memorize_Location);
-
-        // todo this checks if the key is down
-        // but it it not called only once when the player presses the key
-        // see ClientRawInputEvent.KEY_PRESSED which has a Minecraft object in its parameters
-        ClientTickEvent.CLIENT_POST.register(minecraft -> {
-            if(Door_Summon.isDown()) {
-                Player player = minecraft.player;
-                Level level = player.level();
-                BlockPos lookingAt = null;
-
-                // copied from net.minecraft.client.gui.components.DebugScreenOverlay
-                HitResult res = minecraft.getCameraEntity().pick(20.0f, 0.0f, false);
-                if(res.getType() == HitResult.Type.BLOCK) {
-                    lookingAt = ((BlockHitResult) res).getBlockPos();
-                }
-
-                if(lookingAt == C2S_SummonDoorMessage.Unsummon_Pos) {
-                    Dokipa.LOG.error("Client is looking at special Unsummon_Pos " + C2S_SummonDoorMessage.Unsummon_Pos);
-                } else if(lookingAt == null) {
-                    // the player is not looking at any block -> remove the door
-                    new C2S_SummonDoorMessage(level, C2S_SummonDoorMessage.Unsummon_Pos, Direction.NORTH).sendToServer();
-                } else {
-                    // the player is looking at a block -> summon the door
-                    Direction facing = player.getDirection().getOpposite();
-                    new C2S_SummonDoorMessage(level, lookingAt.above(), facing).sendToServer();
-                }
-            }
-        });
-
-        // called when a client leaves a world
-        // ok on integrated server and on dedicated server
-        ClientPlayerEvent.CLIENT_PLAYER_QUIT.register(player -> {
-            Dokipa.LOG.info("Client/Player Quit");
-            DokipaClient.clearCachedLocations();
-        });
+        KeyMappingRegistry.register(Position_Door);
 
         ClientRawInputEvent.KEY_PRESSED.register((minecraft, keyCode, scanCode, action, modifiers) -> {
             if(Memorize_Location.isDown()) {
@@ -107,8 +80,42 @@ public class DokipaClient {
                 }
 
                 return EventResult.interruptTrue();
+            } else if(Door_Summon.isDown()) {
+                Dokipa.LOG.info("Door_Summon pressed");
+
+                Player player = minecraft.player;
+                Level level = player.level();
+                BlockPos lookingAt = null;
+
+                // copied from net.minecraft.client.gui.components.DebugScreenOverlay
+                HitResult res = minecraft.getCameraEntity().pick(20.0f, 0.0f, false);
+                if(res.getType() == HitResult.Type.BLOCK) {
+                    lookingAt = ((BlockHitResult) res).getBlockPos();
+                }
+
+                if(lookingAt == C2S_SummonDoorMessage.Unsummon_Pos) {
+                    Dokipa.LOG.error("Client is looking at special Unsummon_Pos " + C2S_SummonDoorMessage.Unsummon_Pos);
+                } else if(lookingAt == null) {
+                    // the player is not looking at any block -> remove the door
+                    new C2S_SummonDoorMessage(level, C2S_SummonDoorMessage.Unsummon_Pos, Direction.NORTH).sendToServer();
+                } else {
+                    // the player is looking at a block -> summon the door
+                    Direction facing = player.getDirection().getOpposite();
+                    new C2S_SummonDoorMessage(level, lookingAt.above(), facing).sendToServer();
+                }
+
+                return EventResult.interruptTrue();
+            } else if(Position_Door.isDown()) {
+                minecraft.setScreen(new MemorizedLocationsScreen());
+                return EventResult.interruptTrue();
             }
             return EventResult.pass();
+        });
+
+        // called when a client leaves a world
+        ClientPlayerEvent.CLIENT_PLAYER_QUIT.register(player -> {
+            Dokipa.LOG.info("Client/Player Quit");
+            DokipaClient.clearCachedLocations();
         });
     }
 
@@ -117,7 +124,7 @@ public class DokipaClient {
         memorizedLocationsCache.add(loc);
     }
 
-    public List<MemorizedLocation> getCachedLocations() {
+    public static List<MemorizedLocation> getCachedLocations() {
         return memorizedLocationsCache;
     }
 
