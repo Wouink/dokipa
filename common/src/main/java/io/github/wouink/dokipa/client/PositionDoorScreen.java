@@ -19,6 +19,11 @@ import net.minecraft.network.chat.Component;
     It is populated when the player connects to a server with S2C_SendMemorizedLocationMessages.
  */
 public class PositionDoorScreen extends Screen {
+    private static final Component TITLE = Component.translatable("screen.dokipa.position_door.title");
+    private static final Component SHIFT_HINT = Component.translatable("screen.dokipa.position_door.shift_hint");
+
+    private int midWidth;
+
     protected PositionDoorScreen(Component component) {
         super(component);
     }
@@ -33,6 +38,8 @@ public class PositionDoorScreen extends Screen {
 
         Dokipa.LOG.info("Width = " + width + ", Height = " + height);
 
+        midWidth = this.width / 2;
+
         int columns = 2;
         if(width >= 640) columns = 4;
         else if(width >= 500) columns = 3;
@@ -40,12 +47,8 @@ public class PositionDoorScreen extends Screen {
         // create the menu
         // with help from net.minecraft.client.gui.screens.PauseScreen
 
-        // todo add a title "Position your door"
-        // todo add a text "Shift+Click to forget a location"
-
         GridLayout gridLayout = new GridLayout();
         gridLayout.defaultCellSetting().padding(4);
-        // 4 buttons (columns) per row
         GridLayout.RowHelper rowHelper = gridLayout.createRowHelper(columns);
 
         DokipaClient.getCachedLocations().forEach(memorizedLocation -> {
@@ -62,13 +65,16 @@ public class PositionDoorScreen extends Screen {
         });
 
         gridLayout.arrangeElements();
-        FrameLayout.alignInRectangle(gridLayout, 0, 0, this.width, this.height, 0.5f, 0f);
+        FrameLayout.alignInRectangle(gridLayout, 0, 0, this.width, this.height, 0.5f, 0.25f);
         gridLayout.visitWidgets(this::addRenderableWidget);
     }
 
     @Override
     public void render(GuiGraphics guiGraphics, int i, int j, float f) {
         this.renderBackground(guiGraphics);
+        // drawCenteredString(font, component, x = center of centered text, y, color)
+        guiGraphics.drawCenteredString(Minecraft.getInstance().font, TITLE, midWidth, 10, 0xffffff);
+        guiGraphics.drawCenteredString(Minecraft.getInstance().font, SHIFT_HINT, midWidth, 30, 0xffffff);
         super.render(guiGraphics, i, j, f);
     }
 

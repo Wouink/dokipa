@@ -2,5 +2,7 @@
   "key.dokipa.summon_door": "Summon/Unsummon Door",
   "category.dokipa.all_bindings": "Dokipa",
   "block.dokipa.room_separator": "Room Separator",
-  "btn.dokipa.duplicate_location": "Name in use!"
+  "btn.dokipa.duplicate_location": "Name in use!",
+  "screen.dokipa.position_door.title": "Position your Door",
+  "screen.dokipa.position_door.shift_hint": "Press Shift while clicking to forget a location"
 }
