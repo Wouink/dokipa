@@ -26,6 +26,8 @@ public class MemorizeLocationScreen extends Screen {
     private EditBox nameField;
     private Button validateButton;
 
+    private static Component LOCATION_DUPLICATE = Component.translatable("btn.dokipa.duplicate_location");
+
     protected MemorizeLocationScreen(Component component) {
         super(component);
     }
@@ -39,7 +41,7 @@ public class MemorizeLocationScreen extends Screen {
     @Override
     protected void init() {
         super.init();
-        nameField = new EditBox(Minecraft.getInstance().font, 10, 10, 100, 16, Component.empty());
+        nameField = new EditBox(Minecraft.getInstance().font, this.width / 2 - 80, this.height / 2 - 40, 160, 16, Component.empty());
         nameField.setEditable(true);
         nameField.setMaxLength(32);
         this.addRenderableWidget(nameField);
@@ -55,7 +57,7 @@ public class MemorizeLocationScreen extends Screen {
                 new C2S_MemorizeLocationMessage(C2S_MemorizeLocationMessage.Type.MEMORIZE, loc).sendToServer();
                 Minecraft.getInstance().setScreen(null);
             }
-        }).pos(10, 20).build());
+        }).pos(this.width / 2 - 50, this.height / 2 - 16).width(100).build());
 
         // enable/disable "Done" button to ensure the description is unique
         nameField.setResponder(value -> {
@@ -69,6 +71,7 @@ public class MemorizeLocationScreen extends Screen {
                 }
             }
             validateButton.active = canSave;
+            validateButton.setMessage((canSave || value.isEmpty()) ? CommonComponents.GUI_DONE : LOCATION_DUPLICATE);
         });
     }
 

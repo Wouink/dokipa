@@ -1,5 +1,6 @@
 {
   "key.dokipa.summon_door": "Summon/Unsummon Door",
   "category.dokipa.all_bindings": "Dokipa",
-  "block.dokipa.room_separator": "Room Separator"
+  "block.dokipa.room_separator": "Room Separator",
+  "btn.dokipa.duplicate_location": "Name in use!"
 }

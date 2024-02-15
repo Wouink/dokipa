@@ -1,5 +1,6 @@
 {
   "key.dokipa.summon_door": "Invoquer/Enlever votre Porte",
   "category.dokipa.all_bindings": "Dokipa",
-  "block.dokipa.room_separator": "Séparateur de salles"
+  "block.dokipa.room_separator": "Séparateur de salles",
+  "btn.dokipa.duplicate_location": "Nom déjà utilisé !"
 }

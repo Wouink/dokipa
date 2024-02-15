@@ -1,5 +1,6 @@
 package io.github.wouink.dokipa.client;
 
+import io.github.wouink.dokipa.Dokipa;
 import io.github.wouink.dokipa.DokipaClient;
 import io.github.wouink.dokipa.network.C2S_MemorizeLocationMessage;
 import io.github.wouink.dokipa.network.C2S_SummonDoorMessage;
@@ -30,6 +31,12 @@ public class PositionDoorScreen extends Screen {
     protected void init() {
         super.init();
 
+        Dokipa.LOG.info("Width = " + width + ", Height = " + height);
+
+        int columns = 2;
+        if(width >= 640) columns = 4;
+        else if(width >= 500) columns = 3;
+
         // create the menu
         // with help from net.minecraft.client.gui.screens.PauseScreen
 
@@ -39,7 +46,7 @@ public class PositionDoorScreen extends Screen {
         GridLayout gridLayout = new GridLayout();
         gridLayout.defaultCellSetting().padding(4);
         // 4 buttons (columns) per row
-        GridLayout.RowHelper rowHelper = gridLayout.createRowHelper(4);
+        GridLayout.RowHelper rowHelper = gridLayout.createRowHelper(columns);
 
         DokipaClient.getCachedLocations().forEach(memorizedLocation -> {
             rowHelper.addChild(Button.builder(Component.literal(memorizedLocation.getDescription()), button -> {
@@ -55,7 +62,7 @@ public class PositionDoorScreen extends Screen {
         });
 
         gridLayout.arrangeElements();
-        FrameLayout.alignInRectangle(gridLayout, 0, 0, this.width, this.height, 0.5f, 0.25f);
+        FrameLayout.alignInRectangle(gridLayout, 0, 0, this.width, this.height, 0.5f, 0f);
         gridLayout.visitWidgets(this::addRenderableWidget);
     }
 
