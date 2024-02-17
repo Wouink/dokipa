@@ -1,5 +1,7 @@
 package io.github.wouink.dokipa;
 
+import dev.architectury.event.EventResult;
+import dev.architectury.event.events.common.EntityEvent;
 import dev.architectury.event.events.common.InteractionEvent;
 import dev.architectury.event.events.common.PlayerEvent;
 import dev.architectury.networking.simple.MessageType;
@@ -10,13 +12,16 @@ import io.github.wouink.dokipa.network.C2S_MemorizeLocationMessage;
 import io.github.wouink.dokipa.network.C2S_SummonDoorMessage;
 import io.github.wouink.dokipa.network.S2C_SendMemorizedLocationMessage;
 import io.github.wouink.dokipa.server.DokipaSavedData;
+import io.github.wouink.dokipa.server.DoorInfo;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -24,6 +29,8 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import java.util.UUID;
 
 public class Dokipa {
     public static final String MODID = "dokipa";
@@ -51,8 +58,20 @@ public class Dokipa {
     public static final RegistrySupplier<Block> Room_Separator = BLOCKS.register("room_separator", () -> new Block(BlockBehaviour.Properties.copy(Blocks.BEDROCK).lightLevel(blockState -> 15)));
     public static final RegistrySupplier<Item> Room_Separator_Item = ITEMS.register("room_separator", () -> new BlockItem(Room_Separator.get(), new Item.Properties().arch$tab(CreativeModeTabs.OP_BLOCKS)));
 
-    // todo gamerule maxDokipas
+    // gamerule maxDokipas = how many doors will be naturally generated to be taken by a Dokipa
     // cf https://github.com/TeamTwilight/twilightforest/blob/1.20.x/src/main/java/twilightforest/TwilightForestMod.java#L67
+    public static final GameRules.Key<GameRules.IntegerValue> Max_Dokipas_Gamerule = GameRules.register(
+            "maxDokipas",
+            GameRules.Category.UPDATES, /* all the world-related gamerules are categorized as "updates" */
+            GameRules.IntegerValue.create(10)
+    );
+
+    // gamerule keepDoorOnDeath
+    public static final GameRules.Key<GameRules.BooleanValue> Keep_Door_On_Death = GameRules.register(
+            "keepDoorOnDeath",
+            GameRules.Category.UPDATES,
+            GameRules.BooleanValue.create(true)
+    );
 
     // adding the dimensions consist of a single json file in the data/dokipa/dimension folder
     // file was generated using https://worldgen.syldium.dev/
@@ -82,6 +101,22 @@ public class Dokipa {
                 DokipaSavedData sd = Dokipa.savedData(player.getServer());
                 sd.sendMemorizedLocations(player);
             }
+        });
+
+        // apply gamerule keepDoorOnDeath
+        EntityEvent.LIVING_DEATH.register((entity, source) -> {
+            Level level = entity.level();
+            if(!level.isClientSide() && entity instanceof Player) {
+                if(!level.getGameRules().getBoolean(Keep_Door_On_Death)) {
+                    DokipaSavedData sd = Dokipa.savedData(level.getServer());
+                    DoorInfo doorInfo = sd.doorForEntity(entity);
+                    if(doorInfo != null) {
+                        doorInfo.setOwner((UUID) null);
+                        sd.setDirty();
+                    }
+                }
+            }
+            return EventResult.pass();
         });
     }
 
