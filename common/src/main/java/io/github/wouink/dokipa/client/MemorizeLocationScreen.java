@@ -20,11 +20,14 @@ import net.minecraft.world.level.Level;
     Will result in a C2S_MemorizeLocationMessage.
  */
 public class MemorizeLocationScreen extends Screen {
+    private static final Component TITLE = Component.translatable("screen.dokipa.name_location.title");
     private LocalizedBlockPos pos;
     private Direction facing;
 
     private EditBox nameField;
     private Button validateButton;
+
+    private int halfWidth, titleY;
 
     private static Component LOCATION_DUPLICATE = Component.translatable("btn.dokipa.duplicate_location");
 
@@ -33,7 +36,7 @@ public class MemorizeLocationScreen extends Screen {
     }
 
     public MemorizeLocationScreen(Level level, BlockPos pos, Direction facing) {
-        super(Component.translatable("dokipa.name_location"));
+        super(TITLE);
         this.pos = new LocalizedBlockPos(pos, level);
         this.facing = facing;
     }
@@ -41,7 +44,11 @@ public class MemorizeLocationScreen extends Screen {
     @Override
     protected void init() {
         super.init();
-        nameField = new EditBox(Minecraft.getInstance().font, this.width / 2 - 80, this.height / 2 - 40, 160, 16, Component.empty());
+
+        halfWidth = this.width / 2;
+        titleY = this.height / 2 - 40 - 2 * Minecraft.getInstance().font.lineHeight;
+
+        nameField = new EditBox(Minecraft.getInstance().font, halfWidth - 80, this.height / 2 - 40, 160, 16, Component.empty());
         nameField.setEditable(true);
         nameField.setMaxLength(32);
         this.addRenderableWidget(nameField);
@@ -51,13 +58,8 @@ public class MemorizeLocationScreen extends Screen {
         nameField.setValue("Northern Plains");
 
         validateButton = addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> {
-            String description = nameField.getValue();
-            if(!description.isEmpty()) {
-                MemorizedLocation loc = new MemorizedLocation(description, pos, facing);
-                new C2S_MemorizeLocationMessage(C2S_MemorizeLocationMessage.Type.MEMORIZE, loc).sendToServer();
-                Minecraft.getInstance().setScreen(null);
-            }
-        }).pos(this.width / 2 - 50, this.height / 2 - 16).width(100).build());
+            save();
+        }).pos(halfWidth - 50, this.height / 2 - 16).width(100).build());
 
         // enable/disable "Done" button to ensure the description is unique
         nameField.setResponder(value -> {
@@ -75,9 +77,28 @@ public class MemorizeLocationScreen extends Screen {
         });
     }
 
+    private void save() {
+        String description = nameField.getValue();
+        if(validateButton.active && !description.isEmpty()) {
+            MemorizedLocation loc = new MemorizedLocation(description, pos, facing);
+            new C2S_MemorizeLocationMessage(C2S_MemorizeLocationMessage.Type.MEMORIZE, loc).sendToServer();
+            Minecraft.getInstance().setScreen(null);
+        }
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int j, int k) {
+        if(keyCode == 257 /* return key */) {
+            save();
+            return true;
+        } else return super.keyPressed(keyCode, j, k);
+    }
+
     @Override
     public void render(GuiGraphics guiGraphics, int i, int j, float f) {
         this.renderBackground(guiGraphics);
+        // drawCenteredString(font, component, x = center of centered text, y, color)
+        guiGraphics.drawCenteredString(Minecraft.getInstance().font, TITLE, halfWidth, titleY, 0xffffff);
         super.render(guiGraphics, i, j, f);
     }
 

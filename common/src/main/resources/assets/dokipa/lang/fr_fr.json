@@ -4,5 +4,6 @@
   "block.dokipa.room_separator": "Séparateur de salles",
   "btn.dokipa.duplicate_location": "Nom déjà utilisé !",
   "screen.dokipa.position_door.title": "Positionnez votre porte",
-  "screen.dokipa.position_door.shift_hint": "Appuyez sur Maj en cliquant pour oublier un emplacement"
+  "screen.dokipa.position_door.shift_hint": "Appuyez sur Maj en cliquant pour oublier un emplacement",
+  "screen.dokipa.name_location.title": "Mémoriser cet emplacement"
 }

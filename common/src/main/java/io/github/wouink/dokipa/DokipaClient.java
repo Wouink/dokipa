@@ -58,8 +58,6 @@ public class DokipaClient {
 
         ClientRawInputEvent.KEY_PRESSED.register((minecraft, keyCode, scanCode, action, modifiers) -> {
             if(Memorize_Location.isDown()) {
-                Dokipa.LOG.info("Memorize_Location pressed");
-
                 Player player = minecraft.player;
                 Level level = player.level();
                 BlockPos lookingAt = null;
@@ -81,8 +79,6 @@ public class DokipaClient {
 
                 return EventResult.interruptTrue();
             } else if(Door_Summon.isDown()) {
-                Dokipa.LOG.info("Door_Summon pressed");
-
                 Player player = minecraft.player;
                 Level level = player.level();
                 BlockPos lookingAt = null;
@@ -114,7 +110,6 @@ public class DokipaClient {
 
         // called when a client leaves a world
         ClientPlayerEvent.CLIENT_PLAYER_QUIT.register(player -> {
-            Dokipa.LOG.info("Client/Player Quit");
             DokipaClient.clearCachedLocations();
         });
     }
